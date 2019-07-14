@@ -122,6 +122,7 @@ endif (NNVIEW_USE_NATIVEFILEDIALOG)
 set(NNVIEW_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/nnview_app.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/io/weights-loader.cc
   )
 
 # Increase warning level for clang.

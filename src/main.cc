@@ -26,7 +26,8 @@ SOFTWARE.
 #pragma clang diagnostic ignored "-Weverything"
 #endif
 
-#include "glad/glad.h" // it looks its important to include glad before glfw
+#include "glad/glad.h"  // it looks its important to include glad before glfw
+
 #include "GLFW/glfw3.h"
 
 // imgui
@@ -42,9 +43,12 @@ SOFTWARE.
 
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <string>
 #include <vector>
 
+#include "colormap.hh"
+#include "io/weights-loader.hh"
 #include "nnview_app.hh"
 
 static void gui_new_frame() {
@@ -149,7 +153,7 @@ static void initialize_glfw_opengl_window(GLFWwindow*& window) {
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT,
                  GL_TRUE);  // It looks this is important on macOS.
 #endif
-  window = glfwCreateWindow(900, 600, "nnview", nullptr, nullptr);
+  window = glfwCreateWindow(1200, 800, "nnview", nullptr, nullptr);
   glfwMakeContextCurrent(window);
 
   glfwSwapInterval(1);  // Enable vsync
@@ -368,15 +372,193 @@ static void drop_callabck(GLFWwindow* window, int nums, const char** paths) {
     (void)paths;
     (void)app;
   }
-
 }
+
+static void show_tensor_value(const ImVec2 corner, const float alpha,
+                              const float step, const nnview::Tensor& tensor) {
+  (void)step;
+  (void)tensor;
+
+  const float left_margin = 6.0f;
+  const float top_margin = 6.0f;
+
+  const float cell_left_margin = std::max(0.0f, step / 2.0f - 24.0f);
+  const float cell_top_margin = std::max(0.0f, step / 2.0f - 10.0f);
+
+  const size_t height = size_t(tensor.shape[0]);
+  const size_t width = size_t(tensor.shape[1]);
+
+  ImVec2 window_size = ImGui::GetWindowSize();
+
+  float scroll_x = ImGui::GetScrollX();
+  float scroll_y = ImGui::GetScrollY();
+
+  ImGui::Text("scroll %f, %f", double(scroll_x), double(scroll_y));
+
+  // Draw values for only visible area
+  for (size_t y = 0; y < height; y++) {
+    // TODO(LTE): Compute tighter bound.
+    if (step * y < scroll_y) continue;
+    if ((step * y - scroll_y) > window_size.y) continue;
+
+    std::cout << "y = " << y << "\n";
+
+    for (size_t x = 0; x < width; x++) {
+
+      // TODO(LTE): Compute tighter bound.
+      if (step * x < scroll_x) continue;
+      if ((step * x - scroll_x) > window_size.x) continue;
+
+      const float value = tensor.data[y * width + x];
+
+      char buf[64];
+      snprintf(buf, sizeof(buf), "%4.3f", double(value));
+
+      ImVec2 bmin =
+        ImVec2(corner.x + step * x + left_margin + cell_left_margin,
+               corner.y + step * y + top_margin + cell_top_margin);
+
+#if 0
+      ImVec2 text_size = ImGui::CalcTextSize(buf);
+
+      ImVec2 fill_bmin = ImVec2(bmin.x - 4, bmin.y - 4);
+      ImVec2 fill_bmax = ImVec2(bmin.x + text_size.x + 4, bmin.y + text_size.y + 4);
+
+      // Draw quad for background color
+      ImGui::GetWindowDrawList()->AddRectFilled(fill_bmin, fill_bmax, ImGui::GetColorU32(ImVec4(0.2f, 0.2f, 0.2f, 0.8f * alpha)));
+#endif
+
+      ImGui::SetCursorScreenPos(bmin);
+
+      ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, alpha), "%s", buf);
+    }
+  }
+}
+
+static void tensor_window(const GLuint texid, const nnview::Tensor& tensor) {
+  ImGui::Begin("Tensor", /* p_open */ nullptr,
+               ImGuiWindowFlags_HorizontalScrollbar);
+
+  ImGui::Text("Tensor : %s", tensor.name.c_str());
+
+  static float scale = 2.0f;  // 2x for better visual
+  ImGui::SliderFloat("scale", &scale, 0.0f, 100.0f);
+
+  // Store base corner position for pixel value text overlay
+  ImVec2 pos = ImGui::GetCursorScreenPos();
+  ImVec2 win_pos = ImGui::GetWindowPos();
+
+  ImGui::Text("win pos %f, %f", double(win_pos.x), double(win_pos.y));
+  ImGui::Text("cur pos %f, %f", double(pos.x), double(pos.y));
+
+
+  ImGui::Image(ImTextureID(intptr_t(texid)),
+               ImVec2(scale * tensor.shape[1], scale * tensor.shape[0]));
+
+  if (scale > 40.0f) {
+    // 40.0 ~ 64.0 : alpha 0 -> 1
+    // 64.0 > : 1
+    const float alpha =
+        (scale > 64.0f) ? 1.0f : (scale - 40.0f) / (64.0f - 40.0f);
+    show_tensor_value(pos, alpha, scale, tensor);
+  }
+
+  ImGui::End();
+}
+
+inline uint8_t ftoc(const float x) {
+  int i = int(x * 255.0f);
+  i = std::min(255, std::max(0, i));
+  return uint8_t(i);
+}
+
+static std::vector<uint8_t> tensor_to_color(const nnview::Tensor& tensor) {
+  std::vector<uint8_t> img;
+  img.resize(size_t(tensor.shape[0] * tensor.shape[1] * 4));
+
+  // find max/min value
+  float min_value = std::numeric_limits<float>::max();
+  float max_value = -std::numeric_limits<float>::max();
+
+  for (size_t i = 0; i < size_t(tensor.shape[0] * tensor.shape[1]); i++) {
+    min_value = std::min(min_value, tensor.data[i]);
+    max_value = std::max(max_value, tensor.data[i]);
+  }
+
+  std::cout << "tensor min/max = " << min_value << ", " << max_value
+            << std::endl;
+
+  for (size_t i = 0; i < size_t(tensor.shape[0] * tensor.shape[1]); i++) {
+    // normalize.
+    const float x = (tensor.data[i] - min_value) / (max_value - min_value);
+    nnview::vec3 rgb = nnview::viridis(x);
+
+    // std::cout << rgb[0] << ", " << rgb[1] << ", " << rgb[2] << std::endl;
+
+    img[4 * i + 0] = ftoc(rgb[0]);
+    img[4 * i + 1] = ftoc(rgb[1]);
+    img[4 * i + 2] = ftoc(rgb[2]);
+    img[4 * i + 3] = 255;
+  }
+
+  return img;
+}
+
+static GLuint gen_texture(const nnview::Tensor& tensor) {
+  GLuint texid = 0;
+  glGenTextures(1, &texid);
+
+  glBindTexture(GL_TEXTURE_2D, texid);
+
+  std::vector<uint8_t> img = tensor_to_color(tensor);
+
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tensor.shape[1], tensor.shape[0],
+               /* border */ 0, GL_RGBA, GL_UNSIGNED_BYTE, img.data());
+
+  // No bilinear filtering.
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+  return texid;
+}
+
+#if 0
+static void update_texture(GLuint texid, const nnview::Tensor& tensor) {
+
+  std::vector<uint8_t> img = tensor_to_color(tensor);
+
+  glBindTexture(GL_TEXTURE_2D, texid);
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, tensor.shape[1], tensor.shape[0],
+                  GL_RGBA, GL_FLOAT, img.data());
+  glBindTexture(GL_TEXTURE_2D, 0);
+}
+#endif
 
 int main(int argc, char** argv) {
   // TODO(LTE): Parse args.
   (void)argc;
   (void)argv;
 
-  GLFWwindow *window = nullptr;
+  if (argc < 2) {
+    std::cerr << "Need input.weights\n";
+    return EXIT_FAILURE;
+  }
+
+  nnview::Tensor tensor;
+
+  {
+    bool ret = nnview::load_weights(argv[1], &tensor);
+    if (!ret) {
+      std::cerr << "Failed to read weights : " << argv[1] << "\n";
+      return EXIT_FAILURE;
+    }
+  }
+
+  GLFWwindow* window = nullptr;
   nnview::app app;
 
   initialize_glfw_opengl_window(window);
@@ -393,17 +575,22 @@ int main(int argc, char** argv) {
   initialize_imgui(window);
   (void)ImGui::GetIO();
 
-  ImVec4 background_color =  ImVec4(0.05f, 0.05f, 0.08f, 1.00f);
+  // Setup texture for Tensor display
+  GLuint tensor_texid = gen_texture(tensor);
+
+  ImVec4 background_color = ImVec4(0.05f, 0.05f, 0.08f, 1.00f);
 
   while (!glfwWindowShouldClose(window)) {
-
     gui_new_frame();
     int display_w, display_h;
     gl_new_frame(window, background_color, &display_w, &display_h);
 
+    tensor_window(tensor_texid, tensor);
+
+    // update_texture(tensor_texid, tensor);
+
     // Render all ImGui, then swap buffers
     gl_gui_end_frame(window);
-
   }
 
   deinitialize_gui_and_window(window);
