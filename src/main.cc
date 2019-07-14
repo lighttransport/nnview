@@ -374,8 +374,13 @@ static void drop_callabck(GLFWwindow* window, int nums, const char** paths) {
   }
 }
 
-static void show_tensor_value(const ImVec2 corner, const float alpha,
-                              const float step, const nnview::Tensor& tensor) {
+static void show_tensor_value(
+  // offset of Tensor Image widget from the window upper left location
+  // This offset includes scroll factor.
+  const ImVec2 tensor_image_widget_offset,
+  const float alpha,
+  const float step, const nnview::Tensor& tensor) {
+
   (void)step;
   (void)tensor;
 
@@ -390,24 +395,28 @@ static void show_tensor_value(const ImVec2 corner, const float alpha,
 
   ImVec2 window_size = ImGui::GetWindowSize();
 
-  float scroll_x = ImGui::GetScrollX();
-  float scroll_y = ImGui::GetScrollY();
-
-  ImGui::Text("scroll %f, %f", double(scroll_x), double(scroll_y));
+  size_t num_rect_draws = 0;
 
   // Draw values for only visible area
   for (size_t y = 0; y < height; y++) {
-    // TODO(LTE): Compute tighter bound.
-    if (step * y < scroll_y) continue;
-    if ((step * y - scroll_y) > window_size.y) continue;
-
-    std::cout << "y = " << y << "\n";
+    // TODO(LTE): Compute bound outside of for loop.
+    if (((step + 1) * y) < -tensor_image_widget_offset.y) {
+      continue;
+    }
+    if (((step * y ) > (-tensor_image_widget_offset.y + window_size.y))) {
+      continue;
+    }
 
     for (size_t x = 0; x < width; x++) {
 
-      // TODO(LTE): Compute tighter bound.
-      if (step * x < scroll_x) continue;
-      if ((step * x - scroll_x) > window_size.x) continue;
+      // TODO(LTE): Compute bound outside of for loop.
+      if ((step + 1) * x < -tensor_image_widget_offset.x) {
+        continue;
+      }
+
+      if ((step * x) > (-tensor_image_widget_offset.x + window_size.x)) {
+        continue;
+      }
 
       const float value = tensor.data[y * width + x];
 
@@ -415,18 +424,24 @@ static void show_tensor_value(const ImVec2 corner, const float alpha,
       snprintf(buf, sizeof(buf), "%4.3f", double(value));
 
       ImVec2 bmin =
-        ImVec2(corner.x + step * x + left_margin + cell_left_margin,
-               corner.y + step * y + top_margin + cell_top_margin);
+        ImVec2(tensor_image_widget_offset.x + step * x + left_margin + cell_left_margin,
+               tensor_image_widget_offset.y + step * y + top_margin + cell_top_margin);
 
-#if 0
-      ImVec2 text_size = ImGui::CalcTextSize(buf);
+      // Prevent too many AddRectFilled call for safety.
+      // ImGui's default uses 16bit indices, so drawing too many rects will
+      // cause the assertion failure inside imgui.
+      // 1024 = heuristic value.
+      if (num_rect_draws < 1024) {
+        ImVec2 text_size = ImGui::CalcTextSize(buf);
 
-      ImVec2 fill_bmin = ImVec2(bmin.x - 4, bmin.y - 4);
-      ImVec2 fill_bmax = ImVec2(bmin.x + text_size.x + 4, bmin.y + text_size.y + 4);
+        ImVec2 fill_bmin = ImVec2(bmin.x - 4, bmin.y - 4);
+        ImVec2 fill_bmax = ImVec2(bmin.x + text_size.x + 4, bmin.y + text_size.y + 4);
 
-      // Draw quad for background color
-      ImGui::GetWindowDrawList()->AddRectFilled(fill_bmin, fill_bmax, ImGui::GetColorU32(ImVec4(0.2f, 0.2f, 0.2f, 0.8f * alpha)));
-#endif
+        // Draw quad for background color
+        ImGui::GetWindowDrawList()->AddRectFilled(fill_bmin, fill_bmax, ImGui::GetColorU32(ImVec4(0.2f, 0.2f, 0.2f, 0.4f * alpha)), /* rounding */4.0f);
+
+        num_rect_draws++;
+      }
 
       ImGui::SetCursorScreenPos(bmin);
 
@@ -441,10 +456,9 @@ static void tensor_window(const GLuint texid, const nnview::Tensor& tensor) {
 
   ImGui::Text("Tensor : %s", tensor.name.c_str());
 
-  static float scale = 2.0f;  // 2x for better visual
+  static float scale = 4.0f;  // Set 4x for better initial visual
   ImGui::SliderFloat("scale", &scale, 0.0f, 100.0f);
 
-  // Store base corner position for pixel value text overlay
   ImVec2 pos = ImGui::GetCursorScreenPos();
   ImVec2 win_pos = ImGui::GetWindowPos();
 
@@ -452,15 +466,19 @@ static void tensor_window(const GLuint texid, const nnview::Tensor& tensor) {
   ImGui::Text("cur pos %f, %f", double(pos.x), double(pos.y));
 
 
+  // Store base corner position of the image for pixel value text overlay
+  ImVec2 image_pos = ImGui::GetCursorScreenPos();
+
   ImGui::Image(ImTextureID(intptr_t(texid)),
                ImVec2(scale * tensor.shape[1], scale * tensor.shape[0]));
 
   if (scale > 40.0f) {
+
     // 40.0 ~ 64.0 : alpha 0 -> 1
     // 64.0 > : 1
     const float alpha =
         (scale > 64.0f) ? 1.0f : (scale - 40.0f) / (64.0f - 40.0f);
-    show_tensor_value(pos, alpha, scale, tensor);
+    show_tensor_value(image_pos, alpha, scale, tensor);
   }
 
   ImGui::End();
