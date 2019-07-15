@@ -22,7 +22,11 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/sanitizers)
 find_package(Sanitizers) # Address sanitizer (-DSANITIZE_ADDRESS=ON)
 
-set (CMAKE_CXX_STANDARD 11)
+# We have to use C++14 since imgui-node-editor uses C++14
+# (other component uses C++11)
+set(CMAKE_CXX_STANDARD            14)
+set(CMAKE_CXX_STANDARD_REQUIRED   YES)
+
 
 find_package(OpenGL REQUIRED)
 # OpenGL
@@ -71,9 +75,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/glfw/include)
 list(APPEND EXT_LIBRARIES glfw)
 
 
-# [ImGUI], [ImGuizmo] and [ImGuiFileDialog]
-# TODO(LTE): Disable ImGuiFileDialog when using NativeFileDialog.
+# [ImGUI] and [imgui-node-editor]
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Include)
 list(APPEND UI_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/imgui.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/imgui_widgets.cpp
@@ -81,6 +85,24 @@ list(APPEND UI_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_glfw.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_opengl2.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/imgui_demo.cpp
+
+    # imgui-node-editor
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Include/imgui_node_editor.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Source/crude_json.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Source/crude_json.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Source/imgui_bezier_math.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Source/imgui_bezier_math.inl
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Source/imgui_canvas.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Source/imgui_canvas.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Source/imgui_extra_math.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Source/imgui_extra_math.inl
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Source/imgui_node_editor_api.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Source/imgui_node_editor_internal.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Source/imgui_node_editor_internal.inl
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Source/imgui_node_editor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Support/imgui_node_editor.natvis
+
     )
 
 
