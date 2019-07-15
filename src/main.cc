@@ -52,6 +52,7 @@ SOFTWARE.
 #include "colormap.hh"
 #include "io/weights-loader.hh"
 #include "nnview_app.hh"
+#include "roboto_mono_embed.inc.h"
 
 namespace ed = ax::NodeEditor;
 
@@ -199,17 +200,17 @@ static void initialize_imgui(GLFWwindow* window) {
   io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
   // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
-#if 0
   const float default_font_scale = 16.f;
   ImFontConfig roboto_config;
   strcpy(roboto_config.Name, "Roboto");
   roboto_config.SizePixels = default_font_scale;
   roboto_config.OversampleH = 2;
   roboto_config.OversampleV = 2;
-  io.Fonts->AddFontFromMemoryCompressedTTF(roboto_compressed_data,
-                                           roboto_compressed_size,
+  io.Fonts->AddFontFromMemoryCompressedTTF(roboto_mono_compressed_data,
+                                           roboto_mono_compressed_size,
                                            default_font_scale, &roboto_config);
 
+#if 0
   ImFontConfig ionicons_config;
   ionicons_config.MergeMode = true;
   ionicons_config.GlyphMinAdvanceX = default_font_scale;
@@ -373,12 +374,12 @@ static void drop_callabck(GLFWwindow* window, int nums, const char** paths) {
 }
 
 static void show_tensor_value(
-  // offset of Tensor Image widget from the window upper left location
-  // This offset includes scroll factor.
-  const ImVec2 tensor_image_widget_offset,
-  const float alpha,
-  const float step, const nnview::Tensor& tensor) {
-
+    // Window position
+    const ImVec2 window_pos,
+    // offset of Tensor Image widget from the window upper left location
+    // This offset includes scroll factor.
+    const ImVec2 tensor_image_widget_offset, const float alpha,
+    const float step, const nnview::Tensor& tensor) {
   (void)step;
   (void)tensor;
 
@@ -397,16 +398,17 @@ static void show_tensor_value(
 
   // Draw values for only visible area
   for (size_t y = 0; y < height; y++) {
+    // Assume offset of image item from window corner(upper-left) is rather
+    // small(e.g. < 50 pixels)
     // TODO(LTE): Compute bound outside of for loop.
     if (((step + 1) * y) < -tensor_image_widget_offset.y) {
       continue;
     }
-    if (((step * y ) > (-tensor_image_widget_offset.y + window_size.y))) {
+    if (((step * y) > (-tensor_image_widget_offset.y + window_size.y))) {
       continue;
     }
 
     for (size_t x = 0; x < width; x++) {
-
       // TODO(LTE): Compute bound outside of for loop.
       if ((step + 1) * x < -tensor_image_widget_offset.x) {
         continue;
@@ -421,9 +423,10 @@ static void show_tensor_value(
       char buf[64];
       snprintf(buf, sizeof(buf), "%4.3f", double(value));
 
-      ImVec2 bmin =
-        ImVec2(tensor_image_widget_offset.x + step * x + left_margin + cell_left_margin,
-               tensor_image_widget_offset.y + step * y + top_margin + cell_top_margin);
+      ImVec2 bmin = ImVec2(window_pos.x + tensor_image_widget_offset.x + step * x +
+                               left_margin + cell_left_margin,
+                           window_pos.y + tensor_image_widget_offset.y + step * y +
+                               top_margin + cell_top_margin);
 
       // Prevent too many AddRectFilled call for safety.
       // ImGui's default uses 16bit indices, so drawing too many rects will
@@ -433,10 +436,14 @@ static void show_tensor_value(
         ImVec2 text_size = ImGui::CalcTextSize(buf);
 
         ImVec2 fill_bmin = ImVec2(bmin.x - 4, bmin.y - 4);
-        ImVec2 fill_bmax = ImVec2(bmin.x + text_size.x + 4, bmin.y + text_size.y + 4);
+        ImVec2 fill_bmax =
+            ImVec2(bmin.x + text_size.x + 4, bmin.y + text_size.y + 4);
 
         // Draw quad for background color
-        ImGui::GetWindowDrawList()->AddRectFilled(fill_bmin, fill_bmax, ImGui::GetColorU32(ImVec4(0.2f, 0.2f, 0.2f, 0.4f * alpha)), /* rounding */4.0f);
+        ImGui::GetWindowDrawList()->AddRectFilled(
+            fill_bmin, fill_bmax,
+            ImGui::GetColorU32(ImVec4(0.2f, 0.2f, 0.2f, 0.4f * alpha)),
+            /* rounding */ 4.0f);
 
         num_rect_draws++;
       }
@@ -448,8 +455,7 @@ static void show_tensor_value(
   }
 }
 
-static void node_window()
-{
+static void node_window() {
   ed::SetCurrentEditor(g_Context);
 
   ed::Begin("My Editor");
@@ -460,73 +466,88 @@ static void node_window()
 
   // Start drawing nodes.
   ed::BeginNode(uniqueId++);
-      ImGui::Text("Node A");
-      ed::BeginPin(uniqueId++, ed::PinKind::Input);
-          ImGui::Text("-> In");
-      ed::EndPin();
-      ImGui::SameLine();
-      start_pin_id = uniqueId++;
-      ed::BeginPin(start_pin_id, ed::PinKind::Output);
-          ImGui::Text("Out ->");
-      ed::EndPin();
+  ImGui::Text("Node A");
+  ed::BeginPin(uniqueId++, ed::PinKind::Input);
+  ImGui::Text("-> In");
+  ed::EndPin();
+  ImGui::SameLine();
+  start_pin_id = uniqueId++;
+  ed::BeginPin(start_pin_id, ed::PinKind::Output);
+  ImGui::Text("Out ->");
+  ed::EndPin();
   ed::EndNode();
 
   ed::BeginNode(uniqueId++);
-      ImGui::Text("Node B");
-      end_pin_id = uniqueId++;
-      ed::BeginPin(end_pin_id, ed::PinKind::Input);
-          ImGui::Text("-> In");
-      ed::EndPin();
-      ImGui::SameLine();
-      ed::BeginPin(uniqueId++, ed::PinKind::Output);
-          ImGui::Text("Out ->");
-      ed::EndPin();
+  ImGui::Text("Node B");
+  end_pin_id = uniqueId++;
+  ed::BeginPin(end_pin_id, ed::PinKind::Input);
+  ImGui::Text("-> In");
+  ed::EndPin();
+  ImGui::SameLine();
+  ed::BeginPin(uniqueId++, ed::PinKind::Output);
+  ImGui::Text("Out ->");
+  ed::EndPin();
   ed::EndNode();
 
   // Test link
-  if (!ed::Link(/*link_id */1,start_pin_id, end_pin_id)) {
+  if (!ed::Link(/*link_id */ 1, start_pin_id, end_pin_id)) {
     std::cerr << "Link fail\n";
   }
 
   if (ImGui::Button("Flow")) {
-    ed::Flow(/*link_id */1);
+    ed::Flow(/*link_id */ 1);
   }
 
   ed::End();
 }
 
 static void tensor_window(const GLuint texid, const nnview::Tensor& tensor) {
+  static float scale = 4.0f;  // Set 4x for better initial visual
+
   ImGui::Begin("Tensor", /* p_open */ nullptr,
                ImGuiWindowFlags_HorizontalScrollbar);
 
-  ImGui::Text("Tensor : %s", tensor.name.c_str());
+  {
+    ImGui::Text("Tensor : %s", tensor.name.c_str());
 
-  static float scale = 4.0f;  // Set 4x for better initial visual
-  ImGui::SliderFloat("scale", &scale, 0.0f, 100.0f);
+    ImGui::SliderFloat("scale", &scale, 0.0f, 100.0f);
 
-  ImVec2 pos = ImGui::GetCursorScreenPos();
-  ImVec2 win_pos = ImGui::GetWindowPos();
+    ImVec2 pos = ImGui::GetCursorScreenPos();
+    ImVec2 win_pos = ImGui::GetWindowPos();
 
-  ImGui::Text("win pos %f, %f", double(win_pos.x), double(win_pos.y));
-  ImGui::Text("cur pos %f, %f", double(pos.x), double(pos.y));
+    ImGui::Text("win pos %f, %f", double(win_pos.x), double(win_pos.y));
+    ImGui::Text("cur pos %f, %f", double(pos.x), double(pos.y));
 
-
-  // Store base corner position of the image for pixel value text overlay
-  ImVec2 image_pos = ImGui::GetCursorScreenPos();
-
-  ImGui::Image(ImTextureID(intptr_t(texid)),
-               ImVec2(scale * tensor.shape[1], scale * tensor.shape[0]));
-
-  if (scale > 40.0f) {
-
-    // 40.0 ~ 64.0 : alpha 0 -> 1
-    // 64.0 > : 1
-    const float alpha =
-        (scale > 64.0f) ? 1.0f : (scale - 40.0f) / (64.0f - 40.0f);
-    show_tensor_value(image_pos, alpha, scale, tensor);
+    ImGui::End();
   }
 
-  ImGui::End();
+  // Child window looks not working well.
+  // Create dedicated window for Tensor image display
+
+  // Create child so that scroll bar only effective to the image region.
+  ImGui::Begin("Tensor Image", /* p_open */ nullptr,
+               ImGuiWindowFlags_HorizontalScrollbar);
+  {
+    ImVec2 win_pos = ImGui::GetWindowPos();
+    ImVec2 image_pos = ImGui::GetCursorScreenPos();
+
+    ImVec2 image_local_offset;
+    image_local_offset.x = image_pos.x - win_pos.x;
+    image_local_offset.y = image_pos.y - win_pos.y;
+
+    ImGui::Image(ImTextureID(intptr_t(texid)),
+                 ImVec2(scale * tensor.shape[1], scale * tensor.shape[0]));
+
+    if (scale > 40.0f) {
+      // 40.0 ~ 64.0 : alpha 0 -> 1
+      // 64.0 > : 1
+      const float alpha =
+          (scale > 64.0f) ? 1.0f : (scale - 40.0f) / (64.0f - 40.0f);
+      show_tensor_value(win_pos, image_local_offset, alpha, scale, tensor);
+    }
+
+    ImGui::End();
+  }
 }
 
 inline uint8_t ftoc(const float x) {
@@ -634,6 +655,14 @@ int main(int argc, char** argv) {
   // pointer through glfwSetWindowUserPointer.
   // https://stackoverflow.com/questions/39731561/use-lambda-as-glfwkeyfun
   glfwSetDropCallback(window, drop_callabck);
+
+  float xscale, yscale;
+
+  // FIXME(LTE): Assume single monitor
+  GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+  glfwGetMonitorContentScale(monitor, &xscale, &yscale);
+
+  std::cout << "scale = " << xscale << ", " << yscale << "\n";
 
   initialize_imgui(window);
   (void)ImGui::GetIO();

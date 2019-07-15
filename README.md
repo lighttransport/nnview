@@ -1,5 +1,7 @@
 # nnview, neural network viewer
 
+nnview can display weights and graph structure of neural network model.
+
 T.B.W.
 
 ## License
@@ -10,4 +12,5 @@ MIT license
 
 * imgui : Public domain
 * glfw3 : zlib license
-* nativefiledialog :
+* nativefiledialog : zlib license
+* roboto font : Apache 2.0 license
