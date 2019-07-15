@@ -34,6 +34,8 @@ SOFTWARE.
 #include "imgui.h"
 #include "imgui_internal.h"
 
+#include "imgui_node_editor.h"
+
 #include "examples/imgui_impl_glfw.h"
 #include "examples/imgui_impl_opengl2.h"
 
@@ -50,6 +52,10 @@ SOFTWARE.
 #include "colormap.hh"
 #include "io/weights-loader.hh"
 #include "nnview_app.hh"
+
+namespace ed = ax::NodeEditor;
+
+static ed::EditorContext* g_Context = nullptr;
 
 static void gui_new_frame() {
   glfwPollEvents();
@@ -450,6 +456,53 @@ static void show_tensor_value(
   }
 }
 
+static void node_window()
+{
+  ed::SetCurrentEditor(g_Context);
+
+  ed::Begin("My Editor");
+
+  uint32_t uniqueId = 1;
+  uint32_t start_pin_id = 0;
+  uint32_t end_pin_id = 0;
+
+  // Start drawing nodes.
+  ed::BeginNode(uniqueId++);
+      ImGui::Text("Node A");
+      ed::BeginPin(uniqueId++, ed::PinKind::Input);
+          ImGui::Text("-> In");
+      ed::EndPin();
+      ImGui::SameLine();
+      start_pin_id = uniqueId++;
+      ed::BeginPin(start_pin_id, ed::PinKind::Output);
+          ImGui::Text("Out ->");
+      ed::EndPin();
+  ed::EndNode();
+
+  ed::BeginNode(uniqueId++);
+      ImGui::Text("Node B");
+      end_pin_id = uniqueId++;
+      ed::BeginPin(end_pin_id, ed::PinKind::Input);
+          ImGui::Text("-> In");
+      ed::EndPin();
+      ImGui::SameLine();
+      ed::BeginPin(uniqueId++, ed::PinKind::Output);
+          ImGui::Text("Out ->");
+      ed::EndPin();
+  ed::EndNode();
+
+  // Test link
+  if (!ed::Link(/*link_id */1,start_pin_id, end_pin_id)) {
+    std::cerr << "Link fail\n";
+  }
+
+  if (ImGui::Button("Flow")) {
+    ed::Flow(/*link_id */1);
+  }
+
+  ed::End();
+}
+
 static void tensor_window(const GLuint texid, const nnview::Tensor& tensor) {
   ImGui::Begin("Tensor", /* p_open */ nullptr,
                ImGuiWindowFlags_HorizontalScrollbar);
@@ -593,6 +646,9 @@ int main(int argc, char** argv) {
   initialize_imgui(window);
   (void)ImGui::GetIO();
 
+  // Create NodeEditor
+  g_Context = ed::CreateEditor();
+
   // Setup texture for Tensor display
   GLuint tensor_texid = gen_texture(tensor);
 
@@ -603,6 +659,8 @@ int main(int argc, char** argv) {
     int display_w, display_h;
     gl_new_frame(window, background_color, &display_w, &display_h);
 
+    node_window();
+
     tensor_window(tensor_texid, tensor);
 
     // update_texture(tensor_texid, tensor);
@@ -610,6 +668,8 @@ int main(int argc, char** argv) {
     // Render all ImGui, then swap buffers
     gl_gui_end_frame(window);
   }
+
+  ed::DestroyEditor(g_Context);
 
   deinitialize_gui_and_window(window);
 
