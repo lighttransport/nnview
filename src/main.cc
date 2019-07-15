@@ -151,14 +151,6 @@ static void initialize_glfw_opengl_window(GLFWwindow*& window) {
   glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 #endif
 
-#ifdef __APPLE__
-  // Create OpenGL 3.3 context(this should be available Maveriks or later)
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT,
-                 GL_TRUE);  // It looks this is important on macOS.
-#endif
   window = glfwCreateWindow(1200, 800, "nnview", nullptr, nullptr);
   glfwMakeContextCurrent(window);
 
