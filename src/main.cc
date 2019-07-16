@@ -21,12 +21,16 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"
 #endif
 
-#include "glad/glad.h"  // it looks its important to include glad before glfw
+#include "glad/glad.h" // it looks its important to include glad before glfw
 
 #include "GLFW/glfw3.h"
 
@@ -76,7 +80,7 @@ enum class PinKind { Output, Input };
 
 struct Pin {
   ed::PinId ID;
-  ::ImNode* ImNode;
+  ::ImNode *ImNode;
   std::string Name;
   PinType Type;
   PinKind Kind;
@@ -94,14 +98,14 @@ struct ImNode {
   ImColor color;
   ImVec2 size;
 
-  const nnview::Node* node = nullptr;
+  const nnview::Node *node = nullptr;
 
   ImNode(ed::NodeId _id, const std::string _name,
          ImColor _color = ImColor(255, 255, 255))
       : id(_id), name(_name), color(_color), size(0, 0) {}
 };
 
-static ed::EditorContext* g_Context = nullptr;
+static ed::EditorContext *g_Context = nullptr;
 
 static void gui_new_frame() {
   glfwPollEvents();
@@ -110,8 +114,8 @@ static void gui_new_frame() {
   ImGui::NewFrame();
 }
 
-static void gl_new_frame(GLFWwindow* window, ImVec4 clear_color, int* display_w,
-                         int* display_h) {
+static void gl_new_frame(GLFWwindow *window, ImVec4 clear_color, int *display_w,
+                         int *display_h) {
   // Rendering
   glfwGetFramebufferSize(window, display_w, display_h);
   glViewport(0, 0, *display_w, *display_h);
@@ -123,7 +127,7 @@ static void gl_new_frame(GLFWwindow* window, ImVec4 clear_color, int* display_w,
   glBlendEquation(GL_FUNC_ADD);
 }
 
-static void gl_gui_end_frame(GLFWwindow* window) {
+static void gl_gui_end_frame(GLFWwindow *window) {
   glUseProgram(0);
 
   ImGui::Render();
@@ -168,7 +172,7 @@ static bool ImGuiCombo(const char* label, int* current_item,
 }
 #endif
 
-static void error_callback(int error, const char* description) {
+static void error_callback(int error, const char *description) {
   std::cerr << "GLFW Error : " << error << ", " << description << std::endl;
 }
 
@@ -188,14 +192,17 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action,
 }
 #else
 
-static void key_callback(GLFWwindow* window, int key, int, int action, int mods) {
-  ImGuiIO& io = ImGui::GetIO();
-  if (action == GLFW_PRESS) io.KeysDown[key] = true;
-  if (action == GLFW_RELEASE) io.KeysDown[key] = false;
+static void key_callback(GLFWwindow *window, int key, int, int action,
+                         int mods) {
+  ImGuiIO &io = ImGui::GetIO();
+  if (action == GLFW_PRESS)
+    io.KeysDown[key] = true;
+  if (action == GLFW_RELEASE)
+    io.KeysDown[key] = false;
 
   std::cout << char(key) << "\n";
 
-  (void)mods;  // Modifiers are not reliable across systems
+  (void)mods; // Modifiers are not reliable across systems
   io.KeyCtrl =
       io.KeysDown[GLFW_KEY_LEFT_CONTROL] || io.KeysDown[GLFW_KEY_RIGHT_CONTROL];
   io.KeyShift =
@@ -209,17 +216,16 @@ static void key_callback(GLFWwindow* window, int key, int, int action, int mods)
   }
 }
 
-static void char_callback(GLFWwindow*, unsigned int c)
-{
-    ImGuiIO& io = ImGui::GetIO();
-    if (c > 0 && c < 0x10000) {
-        io.AddInputCharacter(static_cast<unsigned short>(c));
+static void char_callback(GLFWwindow *, unsigned int c) {
+  ImGuiIO &io = ImGui::GetIO();
+  if (c > 0 && c < 0x10000) {
+    io.AddInputCharacter(static_cast<unsigned short>(c));
   }
 }
 
 #endif
 
-static void initialize_glfw_opengl_window(GLFWwindow*& window) {
+static void initialize_glfw_opengl_window(GLFWwindow *&window) {
   // Setup window
   glfwSetErrorCallback(error_callback);
   if (!glfwInit()) {
@@ -233,7 +239,7 @@ static void initialize_glfw_opengl_window(GLFWwindow*& window) {
   window = glfwCreateWindow(1200, 800, "nnview", nullptr, nullptr);
   glfwMakeContextCurrent(window);
 
-  glfwSwapInterval(1);  // Enable vsync
+  glfwSwapInterval(1); // Enable vsync
 
   //
   glfwSetKeyCallback(window, key_callback);
@@ -257,11 +263,12 @@ static void initialize_glfw_opengl_window(GLFWwindow*& window) {
   }
 
 #ifdef _DEBUG
-  glEnable(GL_DEBUG_OUTPUT);
-  glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-  glDebugMessageCallback(reinterpret_cast<GLDEBUGPROC>(glDebugOutput), nullptr);
-  glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr,
-                        GL_TRUE);
+  // glEnable(GL_DEBUG_OUTPUT);
+  // glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+  // glDebugMessageCallback(reinterpret_cast<GLDEBUGPROC>(glDebugOutput),
+  // nullptr); glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0,
+  // nullptr,
+  //                     GL_TRUE);
 #endif
 
   // glEnable(GL_BLEND);
@@ -272,10 +279,10 @@ static void initialize_glfw_opengl_window(GLFWwindow*& window) {
   // load_and_set_window_icons(window);
 }
 
-static void initialize_imgui(GLFWwindow* window) {
+static void initialize_imgui(GLFWwindow *window) {
   // Setup Dear ImGui context
   ImGui::CreateContext();
-  auto& io = ImGui::GetIO();
+  auto &io = ImGui::GetIO();
 
   // Enable docking(available in imgui `docking` branch at the moment)
   io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -316,7 +323,7 @@ static void initialize_imgui(GLFWwindow* window) {
   ImGuiFileDialog::linkLabel = ICON_II_ANDROID_ARROW_FORWARD;
 #endif
 
-// Setup Platform/Renderer bindings
+  // Setup Platform/Renderer bindings
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL2_Init();
 
@@ -335,7 +342,7 @@ static void initialize_imgui(GLFWwindow* window) {
   ImGui::GetStyle().FrameBorderSize = 2.f;
   ImGui::GetStyle().ScrollbarSize = 18.f;
 
-  ImVec4* colors = ImGui::GetStyle().Colors;
+  ImVec4 *colors = ImGui::GetStyle().Colors;
   colors[ImGuiCol_Text] = ImVec4(1.000f, 1.000f, 1.000f, 1.000f);
   colors[ImGuiCol_TextDisabled] = ImVec4(0.500f, 0.500f, 0.500f, 1.000f);
   colors[ImGuiCol_WindowBg] = ImVec4(0.180f, 0.180f, 0.180f, 0.9f);
@@ -393,7 +400,7 @@ static void initialize_imgui(GLFWwindow* window) {
 #endif
 }
 
-static void deinitialize_gui_and_window(GLFWwindow* window) {
+static void deinitialize_gui_and_window(GLFWwindow *window) {
   // Cleanup
   ImGui_ImplOpenGL2_Shutdown();
   ImGui_ImplGlfw_Shutdown();
@@ -403,12 +410,12 @@ static void deinitialize_gui_and_window(GLFWwindow* window) {
   glfwTerminate();
 }
 
-static void mouse_button_callback(GLFWwindow* window, int button, int action,
+static void mouse_button_callback(GLFWwindow *window, int button, int action,
                                   int mods) {
   (void)mods;
 
-  auto* param =
-      &(reinterpret_cast<nnview::app*>(glfwGetWindowUserPointer(window))
+  auto *param =
+      &(reinterpret_cast<nnview::app *>(glfwGetWindowUserPointer(window))
             ->gui_parameters);
 
   if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
@@ -425,10 +432,10 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action,
     param->button_states[2] = false;
 }
 
-static void cursor_pos_callback(GLFWwindow* window, double mouse_x,
+static void cursor_pos_callback(GLFWwindow *window, double mouse_x,
                                 double mouse_y) {
-  auto* param =
-      &(reinterpret_cast<nnview::app*>(glfwGetWindowUserPointer(window))
+  auto *param =
+      &(reinterpret_cast<nnview::app *>(glfwGetWindowUserPointer(window))
             ->gui_parameters);
 
   // mouse left pressed
@@ -442,11 +449,11 @@ static void cursor_pos_callback(GLFWwindow* window, double mouse_x,
   param->last_mouse_y = mouse_y;
 }
 
-static void drop_callabck(GLFWwindow* window, int nums, const char** paths) {
+static void drop_callabck(GLFWwindow *window, int nums, const char **paths) {
   if (nums > 0) {
     // TODO(LTE): Do we need a lock?
-    nnview::app* app =
-        reinterpret_cast<nnview::app*>(glfwGetWindowUserPointer(window));
+    nnview::app *app =
+        reinterpret_cast<nnview::app *>(glfwGetWindowUserPointer(window));
 
     // TODO(LTE): T.B.W.
     (void)paths;
@@ -539,14 +546,14 @@ static void show_tensor_value(
 #endif
 
 // This should be called only once at the first time
-static void init_imnode_graph(const nnview::Graph& graph,
-                              std::vector<ImNode>* imnodes) {
+static void init_imnode_graph(const nnview::Graph &graph,
+                              std::vector<ImNode> *imnodes) {
   ed::SetCurrentEditor(g_Context);
 
   float node_size = 64.0f;
 
   for (size_t i = 0; i < graph.nodes.size(); i++) {
-    const nnview::Node& node = graph.nodes[i];
+    const nnview::Node &node = graph.nodes[i];
 
     ImNode imnode(GetNextNodeId(), node.name);
     imnode.name = node.name;
@@ -560,13 +567,13 @@ static void init_imnode_graph(const nnview::Graph& graph,
   ed::NavigateToContent();
 }
 
-static void node_window(std::vector<ImNode>& nodes) {
+static void node_window(std::vector<ImNode> &nodes) {
   ed::SetCurrentEditor(g_Context);
 
   ed::Begin("Model");
 
   for (size_t i = 0; i < nodes.size(); i++) {
-    ImNode& node = nodes[i];
+    ImNode &node = nodes[i];
 
     ed::BeginNode(node.id);
     ImGui::Text("%s", node.name.c_str());
@@ -716,7 +723,7 @@ static void update_texture(GLuint texid, const nnview::Tensor& tensor) {
 }
 #endif
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   // TODO(LTE): Parse args.
   (void)argc;
   (void)argv;
@@ -738,7 +745,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  GLFWwindow* window = nullptr;
+  GLFWwindow *window = nullptr;
   nnview::app app;
 
   initialize_glfw_opengl_window(window);
@@ -755,7 +762,7 @@ int main(int argc, char** argv) {
   float xscale, yscale;
 
   // FIXME(LTE): Assume single monitor
-  GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+  GLFWmonitor *monitor = glfwGetPrimaryMonitor();
   glfwGetMonitorContentScale(monitor, &xscale, &yscale);
 
   std::cout << "scale = " << xscale << ", " << yscale << "\n";
