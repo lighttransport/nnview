@@ -2,7 +2,7 @@
 
 #include <fstream>
 #include <iostream>
-#include <regex>
+#include <cassert>
 
 namespace nnview {
 
@@ -27,43 +27,48 @@ bool load_weights(const std::string &filename, Tensor *tensor) {
   std::string shape_line;
   std::getline(ifs, shape_line);
 
-  std::regex regex{R"([\s,]+)"}; // split on space and comma
-  std::sregex_token_iterator it{shape_line.begin(), shape_line.end(), regex, -1};
-  std::vector<std::string> words{it, {}};
+  // Up to 5D tensor
+  int d[5];
+  int n = sscanf(shape_line.c_str(), "%d,%d,%d,%d,%d", &d[0], &d[1], &d[2], &d[3], &d[4]);
 
+  size_t num_items = 1;
   std::vector<int> shape;
-
-  std::cout << "dim : " << words.size() << std::endl;
-
-  size_t n = 1;
-  for (auto &m : words) {
-    int d = std::stoi(m);
-    shape.push_back(d);
-
-    n *= size_t(d);
+  for (int i = 0; i < n; i++) {
+    assert(d[i] > 0);
+    shape.push_back(d[i]);
+    num_items *= size_t(d[i]);
   }
 
-  if (words.size() == 1) {
+  std::cout << "dim : " << shape.size() << std::endl;
+  for (size_t i = 0; i < shape.size(); i++) {
+    std::cout << "  [" << i << "] = " << shape[i] << std::endl;
+  }
+
+  if (shape.size() == 0) {
+    std::cerr << "Failed to parse shape information: " << shape_line << std::endl;
+    return false;
+  }
+
+  if (shape.size() == 1) {
     // force create 2D tensor
     shape.push_back(1);
   }
 
-  std::cout << n << "\n";
+  std::cout << "num_items: " << num_items << "\n";
 
-  tensor->data.resize(n);
+  tensor->data.resize(num_items);
 
   tensor->shape = shape;
   tensor->name = filename;
 
-  ifs.read(reinterpret_cast<char *>(tensor->data.data()), int64_t(n) * datasize);
+  ifs.read(reinterpret_cast<char *>(tensor->data.data()), int64_t(num_items) * datasize);
 
   if (!ifs) {
-    std::cerr << "Failed to read [" << std::to_string(int64_t(n) * datasize) << "] bytes. only [" << ifs.gcount() << "] could be read.\n";
+    std::cerr << "Failed to read [" << std::to_string(int64_t(num_items) * datasize) << "] bytes. only [" << ifs.gcount() << "] could be read.\n";
     return false;
   }
 
   return true;
 }
-
 
 } // namespace nnview

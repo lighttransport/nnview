@@ -9,4 +9,4 @@
 	url = https://github.com/mlabbe/nativefiledialog
 [submodule "third_party/imgui-node-editor"]
 	path = third_party/imgui-node-editor
-	url = https://github.com/thedmd/imgui-node-editor.git
+	url = https://github.com/syoyo/imgui-node-editor

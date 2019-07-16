@@ -49,12 +49,57 @@ SOFTWARE.
 #include <string>
 #include <vector>
 
-#include "colormap.hh"
-#include "io/weights-loader.hh"
+//#include "colormap.hh"
+#include "io/graph-loader.hh"
 #include "nnview_app.hh"
 #include "roboto_mono_embed.inc.h"
 
 namespace ed = ax::NodeEditor;
+
+static int GetNextId() {
+  static int s_NextId = 1;
+  return s_NextId++;
+}
+
+static ed::NodeId GetNextNodeId() {
+  // It looks ed::NodeId type is a integer of pointer value
+  return static_cast<uintptr_t>(GetNextId());
+}
+
+struct ImNode;
+
+enum class PinType {
+  Flow,
+};
+
+enum class PinKind { Output, Input };
+
+struct Pin {
+  ed::PinId ID;
+  ::ImNode* ImNode;
+  std::string Name;
+  PinType Type;
+  PinKind Kind;
+
+  Pin(ed::PinId id, const std::string name, PinType type)
+      : ID(id), ImNode(nullptr), Name(name), Type(type), Kind(PinKind::Input) {}
+};
+
+struct ImNode {
+  // For imgui-node-editor
+  ed::NodeId id;
+  std::string name;
+  std::vector<Pin> inputs;
+  std::vector<Pin> outputs;
+  ImColor color;
+  ImVec2 size;
+
+  const nnview::Node* node = nullptr;
+
+  ImNode(ed::NodeId _id, const std::string _name,
+         ImColor _color = ImColor(255, 255, 255))
+      : id(_id), name(_name), color(_color), size(0, 0) {}
+};
 
 static ed::EditorContext* g_Context = nullptr;
 
@@ -127,6 +172,7 @@ static void error_callback(int error, const char* description) {
   std::cerr << "GLFW Error : " << error << ", " << description << std::endl;
 }
 
+#if 0
 static void key_callback(GLFWwindow* window, int key, int scancode, int action,
                          int mods) {
   (void)scancode;
@@ -140,6 +186,38 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action,
     glfwSetWindowShouldClose(window, GLFW_TRUE);
   }
 }
+#else
+
+static void key_callback(GLFWwindow* window, int key, int, int action, int mods) {
+  ImGuiIO& io = ImGui::GetIO();
+  if (action == GLFW_PRESS) io.KeysDown[key] = true;
+  if (action == GLFW_RELEASE) io.KeysDown[key] = false;
+
+  std::cout << char(key) << "\n";
+
+  (void)mods;  // Modifiers are not reliable across systems
+  io.KeyCtrl =
+      io.KeysDown[GLFW_KEY_LEFT_CONTROL] || io.KeysDown[GLFW_KEY_RIGHT_CONTROL];
+  io.KeyShift =
+      io.KeysDown[GLFW_KEY_LEFT_SHIFT] || io.KeysDown[GLFW_KEY_RIGHT_SHIFT];
+  io.KeyAlt = io.KeysDown[GLFW_KEY_LEFT_ALT] || io.KeysDown[GLFW_KEY_RIGHT_ALT];
+  io.KeySuper =
+      io.KeysDown[GLFW_KEY_LEFT_SUPER] || io.KeysDown[GLFW_KEY_RIGHT_SUPER];
+
+  if (key == GLFW_KEY_Q && action == GLFW_PRESS && (mods & GLFW_MOD_CONTROL)) {
+    glfwSetWindowShouldClose(window, GLFW_TRUE);
+  }
+}
+
+static void char_callback(GLFWwindow*, unsigned int c)
+{
+    ImGuiIO& io = ImGui::GetIO();
+    if (c > 0 && c < 0x10000) {
+        io.AddInputCharacter(static_cast<unsigned short>(c));
+  }
+}
+
+#endif
 
 static void initialize_glfw_opengl_window(GLFWwindow*& window) {
   // Setup window
@@ -156,7 +234,10 @@ static void initialize_glfw_opengl_window(GLFWwindow*& window) {
   glfwMakeContextCurrent(window);
 
   glfwSwapInterval(1);  // Enable vsync
+
+  //
   glfwSetKeyCallback(window, key_callback);
+  glfwSetCharCallback(window, char_callback);
 
   // glad must be called after glfwMakeContextCurrent()
   if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
@@ -235,7 +316,7 @@ static void initialize_imgui(GLFWwindow* window) {
   ImGuiFileDialog::linkLabel = ICON_II_ANDROID_ARROW_FORWARD;
 #endif
 
-  // Setup Platform/Renderer bindings
+// Setup Platform/Renderer bindings
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL2_Init();
 
@@ -373,6 +454,7 @@ static void drop_callabck(GLFWwindow* window, int nums, const char** paths) {
   }
 }
 
+#if 0
 static void show_tensor_value(
     // Window position
     const ImVec2 window_pos,
@@ -423,10 +505,10 @@ static void show_tensor_value(
       char buf[64];
       snprintf(buf, sizeof(buf), "%4.3f", double(value));
 
-      ImVec2 bmin = ImVec2(window_pos.x + tensor_image_widget_offset.x + step * x +
-                               left_margin + cell_left_margin,
-                           window_pos.y + tensor_image_widget_offset.y + step * y +
-                               top_margin + cell_top_margin);
+      ImVec2 bmin = ImVec2(window_pos.x + tensor_image_widget_offset.x +
+                               step * x + left_margin + cell_left_margin,
+                           window_pos.y + tensor_image_widget_offset.y +
+                               step * y + top_margin + cell_top_margin);
 
       // Prevent too many AddRectFilled call for safety.
       // ImGui's default uses 16bit indices, so drawing too many rects will
@@ -454,41 +536,52 @@ static void show_tensor_value(
     }
   }
 }
+#endif
 
-static void node_window() {
+// This should be called only once at the first time
+static void init_imnode_graph(const nnview::Graph& graph,
+                              std::vector<ImNode>* imnodes) {
   ed::SetCurrentEditor(g_Context);
 
-  ed::Begin("My Editor");
+  float node_size = 64.0f;
 
-  uint32_t uniqueId = 1;
-  uint32_t start_pin_id = 0;
-  uint32_t end_pin_id = 0;
+  for (size_t i = 0; i < graph.nodes.size(); i++) {
+    const nnview::Node& node = graph.nodes[i];
 
-  // Start drawing nodes.
-  ed::BeginNode(uniqueId++);
-  ImGui::Text("Node A");
-  ed::BeginPin(uniqueId++, ed::PinKind::Input);
-  ImGui::Text("-> In");
-  ed::EndPin();
-  ImGui::SameLine();
-  start_pin_id = uniqueId++;
-  ed::BeginPin(start_pin_id, ed::PinKind::Output);
-  ImGui::Text("Out ->");
-  ed::EndPin();
-  ed::EndNode();
+    ImNode imnode(GetNextNodeId(), node.name);
+    imnode.name = node.name;
 
-  ed::BeginNode(uniqueId++);
-  ImGui::Text("Node B");
-  end_pin_id = uniqueId++;
-  ed::BeginPin(end_pin_id, ed::PinKind::Input);
-  ImGui::Text("-> In");
-  ed::EndPin();
-  ImGui::SameLine();
-  ed::BeginPin(uniqueId++, ed::PinKind::Output);
-  ImGui::Text("Out ->");
-  ed::EndPin();
-  ed::EndNode();
+    float offset_y = node_size * float(node.depth);
+    ed::SetNodePosition(imnode.id, ImVec2(64.0f, offset_y));
 
+    imnodes->push_back(imnode);
+  }
+
+  ed::NavigateToContent();
+}
+
+static void node_window(std::vector<ImNode>& nodes) {
+  ed::SetCurrentEditor(g_Context);
+
+  ed::Begin("Model");
+
+  for (size_t i = 0; i < nodes.size(); i++) {
+    ImNode& node = nodes[i];
+
+    ed::BeginNode(node.id);
+    ImGui::Text("%s", node.name.c_str());
+    // ed::BeginPin(uniqueId++, ed::PinKind::Input);
+    // ImGui::Text("-> In");
+    // ed::EndPin();
+    // ImGui::SameLine();
+    // start_pin_id = uniqueId++;
+    // ed::BeginPin(start_pin_id, ed::PinKind::Output);
+    // ImGui::Text("Out ->");
+    // ed::EndPin();
+    ed::EndNode();
+  }
+
+#if 0
   // Test link
   if (!ed::Link(/*link_id */ 1, start_pin_id, end_pin_id)) {
     std::cerr << "Link fail\n";
@@ -497,10 +590,12 @@ static void node_window() {
   if (ImGui::Button("Flow")) {
     ed::Flow(/*link_id */ 1);
   }
+#endif
 
   ed::End();
 }
 
+#if 0
 static void tensor_window(const GLuint texid, const nnview::Tensor& tensor) {
   static float scale = 4.0f;  // Set 4x for better initial visual
 
@@ -610,7 +705,6 @@ static GLuint gen_texture(const nnview::Tensor& tensor) {
   return texid;
 }
 
-#if 0
 static void update_texture(GLuint texid, const nnview::Tensor& tensor) {
 
   std::vector<uint8_t> img = tensor_to_color(tensor);
@@ -628,16 +722,18 @@ int main(int argc, char** argv) {
   (void)argv;
 
   if (argc < 2) {
-    std::cerr << "Need input.weights\n";
+    std::cerr << "Need model.json\n";
     return EXIT_FAILURE;
   }
 
-  nnview::Tensor tensor;
+  nnview::Graph graph;
+
+  std::string graph_filename = argv[1];
 
   {
-    bool ret = nnview::load_weights(argv[1], &tensor);
+    bool ret = nnview::load_json_graph(graph_filename, &graph);
     if (!ret) {
-      std::cerr << "Failed to read weights : " << argv[1] << "\n";
+      std::cerr << "Failed to read graph : " << graph_filename << "\n";
       return EXIT_FAILURE;
     }
   }
@@ -671,18 +767,21 @@ int main(int argc, char** argv) {
   g_Context = ed::CreateEditor();
 
   // Setup texture for Tensor display
-  GLuint tensor_texid = gen_texture(tensor);
+  // GLuint tensor_texid = gen_texture(tensor);
 
   ImVec4 background_color = ImVec4(0.05f, 0.05f, 0.08f, 1.00f);
+
+  std::vector<ImNode> imnodes;
+  init_imnode_graph(graph, &imnodes);
 
   while (!glfwWindowShouldClose(window)) {
     gui_new_frame();
     int display_w, display_h;
     gl_new_frame(window, background_color, &display_w, &display_h);
 
-    node_window();
+    node_window(imnodes);
 
-    tensor_window(tensor_texid, tensor);
+    // tensor_window(tensor_texid, tensor);
 
     // update_texture(tensor_texid, tensor);
 

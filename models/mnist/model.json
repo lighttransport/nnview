@@ -1,0 +1,184 @@
+{
+  "inputs": [
+    "input"
+  ],
+  "outputs": [
+    [
+      "LinearFunction-4-1_0",
+      "prob"
+    ]
+  ],
+  "layers": [
+    {
+      "type": "input",
+      "name": "input",
+      "output_names": [
+        "input"
+      ],
+      "rank": -2,
+      "shape": [
+        784
+      ],
+      "input_tensor": "input.tensor"
+    },
+    {
+      "type": "LinearFunction",
+      "name": "LinearFunction-0-1",
+      "rank": 0,
+      "output_names": [
+        "LinearFunction-0-1_0"
+      ],
+      "source": "input",
+      "n_out": 100,
+      "kernel_weights_file": "LinearFunction-0-1_kernel.weights",
+      "bias_weights_file": "LinearFunction-0-1_bias.weights",
+      "output_weights_file": "LinearFunction-0-1_output.weights",
+      "input_shapes": [
+        [
+          1,
+          784
+        ],
+        [
+          100,
+          784
+        ],
+        [
+          100
+        ]
+      ],
+      "input_types": [
+        "float32",
+        "float32",
+        "float32"
+      ],
+      "output_shape": [
+        1,
+        100
+      ],
+      "output_type": "float32",
+      "output_tensor": "LinearFunction-0-1_0_output.tensor"
+    },
+    {
+      "type": "ReLU",
+      "name": "ReLU-1-1",
+      "rank": 1,
+      "output_names": [
+        "ReLU-1-1_0"
+      ],
+      "source": "LinearFunction-0-1_0",
+      "input_shapes": [
+        [
+          1,
+          100
+        ]
+      ],
+      "input_types": [
+        "float32"
+      ],
+      "output_shape": [
+        1,
+        100
+      ],
+      "output_type": "float32",
+      "output_tensor": "ReLU-1-1_0_output.tensor"
+    },
+    {
+      "type": "LinearFunction",
+      "name": "LinearFunction-2-1",
+      "rank": 2,
+      "output_names": [
+        "LinearFunction-2-1_0"
+      ],
+      "source": "ReLU-1-1_0",
+      "n_out": 100,
+      "kernel_weights_file": "LinearFunction-2-1_kernel.weights",
+      "bias_weights_file": "LinearFunction-2-1_bias.weights",
+      "output_weights_file": "LinearFunction-2-1_output.weights",
+      "input_shapes": [
+        [
+          1,
+          100
+        ],
+        [
+          100,
+          100
+        ],
+        [
+          100
+        ]
+      ],
+      "input_types": [
+        "float32",
+        "float32",
+        "float32"
+      ],
+      "output_shape": [
+        1,
+        100
+      ],
+      "output_type": "float32",
+      "output_tensor": "LinearFunction-2-1_0_output.tensor"
+    },
+    {
+      "type": "ReLU",
+      "name": "ReLU-3-1",
+      "rank": 3,
+      "output_names": [
+        "ReLU-3-1_0"
+      ],
+      "source": "LinearFunction-2-1_0",
+      "input_shapes": [
+        [
+          1,
+          100
+        ]
+      ],
+      "input_types": [
+        "float32"
+      ],
+      "output_shape": [
+        1,
+        100
+      ],
+      "output_type": "float32",
+      "output_tensor": "ReLU-3-1_0_output.tensor"
+    },
+    {
+      "type": "LinearFunction",
+      "name": "LinearFunction-4-1",
+      "rank": 4,
+      "output_names": [
+        "LinearFunction-4-1_0"
+      ],
+      "source": "ReLU-3-1_0",
+      "n_out": 10,
+      "kernel_weights_file": "LinearFunction-4-1_kernel.weights",
+      "bias_weights_file": "LinearFunction-4-1_bias.weights",
+      "output_weights_file": "LinearFunction-4-1_output.weights",
+      "input_shapes": [
+        [
+          1,
+          100
+        ],
+        [
+          10,
+          100
+        ],
+        [
+          10
+        ]
+      ],
+      "input_types": [
+        "float32",
+        "float32",
+        "float32"
+      ],
+      "output_shape": [
+        1,
+        10
+      ],
+      "output_type": "float32",
+      "output_tensor": "LinearFunction-4-1_0_output.tensor"
+    }
+  ]
+}

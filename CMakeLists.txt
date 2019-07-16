@@ -143,8 +143,13 @@ endif (NNVIEW_USE_NATIVEFILEDIALOG)
 
 set(NNVIEW_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/colormap.hh
   ${CMAKE_CURRENT_SOURCE_DIR}/src/nnview_app.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/nnview_app.hh
   ${CMAKE_CURRENT_SOURCE_DIR}/src/io/weights-loader.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/io/weights-loader.hh
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/io/graph-loader.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/io/graph-loader.hh
   )
 
 # Increase warning level for clang.
@@ -155,8 +160,13 @@ IF (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set_source_files_properties(${NNVIEW_SOURCES} PROPERTIES COMPILE_FLAGS "-Weverything -Wno-system-headers -Werror -Wno-padded -Wno-c++98-compat-pedantic -Wno-documentation -Wno-documentation-unknown-command -Wno-reserved-id-macro")
 ENDIF ()
 
+set(NNVIEW_EXTRA_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/json11.cpp
+)
+
 add_executable(${BUILD_TARGET}
   ${NNVIEW_SOURCES}
+  ${NNVIEW_EXTRA_SOURCES}
   ${UI_SOURCES}
 )
 
