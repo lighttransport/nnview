@@ -182,6 +182,10 @@ static ed::NodeId GetNextNodeId() {
   return static_cast<uintptr_t>(GetNextId());
 }
 
+static inline ImRect ImGui_GetItemRect() {
+	return ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+}
+
 void GUIContext::draw_imnodes() {
   ed::SetCurrentEditor(_editor_context);
 
@@ -193,19 +197,35 @@ void GUIContext::draw_imnodes() {
     const ImNode& node = _imnodes[i];
 
     ed::BeginNode(node.id);
+	ImGui::PushID(node.id.AsPointer());
 	ImGui::BeginVertical(node.id.AsPointer());
 	ImGui::BeginHorizontal("inputs");
 	ImGui::Spring(0, padding * 2);
 
-    ImGui::Text("%s", node.name.c_str());
-    // ed::BeginPin(uniqueId++, ed::PinKind::Input);
-    // ImGui::Text("-> In");
-    // ed::EndPin();
-    // ImGui::SameLine();
-    // start_pin_id = uniqueId++;
-    // ed::BeginPin(start_pin_id, ed::PinKind::Output);
-    // ImGui::Text("Out ->");
-    // ed::EndPin();
+    //ImGui::Text("%s", node.name.c_str());
+
+	if (!node.outputs.empty()) {
+		auto& pin = node.outputs[0];
+
+		ImGui::Dummy(ImVec2(0, padding));
+		ImGui::Spring(1, 0);
+        ImGui::Text("bora");
+
+		ImRect inputs_rect = ImGui_GetItemRect();
+
+		ed::PushStyleVar(ed::StyleVar_PinArrowSize, 10.0f);
+        ed::PushStyleVar(ed::StyleVar_PinArrowWidth, 10.0f);
+        ed::PushStyleVar(ed::StyleVar_PinCorners, 12.0f);
+
+	    ed::BeginPin(pin.ID, ed::PinKind::Input);
+
+		ed::PinPivotRect(inputs_rect.GetTL(), inputs_rect.GetBR());
+        ed::PinRect(inputs_rect.GetTL(), inputs_rect.GetBR());
+        ed::EndPin();
+
+		ed::PopStyleVar(3);
+
+        }
 
 	ImGui::Spring(1);
 	ImGui::EndHorizontal();
@@ -213,6 +233,7 @@ void GUIContext::draw_imnodes() {
 	ImGui::EndVertical();
     
 	//ImGui::Spring(0, padding * 2);
+	ImGui::PopID();
     ed::EndNode();
   }
 
@@ -267,6 +288,11 @@ void GUIContext::init_imnode_graph() {
     imnode.name = node.name;
 	const float node_rect_height = node.outputs.size() * node_rect_slot_size_y;
 	imnode.size = ImVec2(node_size, node_rect_height);
+
+	// HACK
+	Pin pin(GetNextId(), "Out",  PinType::Flow);
+
+	imnode.outputs.emplace_back(pin);
 
     float offset_x = node_stride * float(node.depth);
     std::cout << "depth = " << node.depth << "\n";
