@@ -9,7 +9,15 @@ set(BUILD_VERSION_PATCH 0)
 project(${BUILD_TARGET})
 
 option(NNVIEW_USE_CCACHE "Compile with ccache(if available. Linux only)" OFF)
-option(NNVIEW_USE_NATIVEFILEDIALOG "Use NativeFileDialog instead of ImGuiFileDialog for file browser(requires GTK3 on Linux)" ON)
+
+if (UNIX)
+	# We still need to consider gtk3 is not available by default on unixish system
+	set(DEFAULT_USE_NFD OFF)
+else(UNIX)
+	set(DEFAULT_USE_NFD ON)
+endif(UNIX)
+
+option(NNVIEW_USE_NATIVEFILEDIALOG "Use NativeFileDialog instead of ImGuiFileDialog for file browser(requires GTK3 on Linux)" ${DEFAULT_USE_NFD})
 
 if(NOT IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/third_party/glfw/include")
   message(FATAL_ERROR "The glfw submodule directory is missing! "
@@ -76,21 +84,30 @@ list(APPEND EXT_LIBRARIES glfw)
 
 
 # [ImGUI] and [imgui-node-editor]
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui)
+# Use imgui-node-editor's custom imgui
+#include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/ThirdParty/imgui)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/Examples/Common/Application/Source/GLFW)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/ThirdParty/gl3w/Include)
 
 # This is required for imgui_impl_opengl3
-add_definitions(-DIMGUI_IMPL_OPENGL_LOADER_GLAD)
+#add_definitions(-DIMGUI_IMPL_OPENGL_LOADER_GLAD)
 list(APPEND UI_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/imgui.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/imgui_widgets.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/imgui_draw.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_glfw.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_opengl3.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/imgui_demo.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/imgui.cpp
+    	#${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/imgui_widgets.cpp
+    	#${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/imgui_draw.cpp
+    	#${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_glfw.cpp
+    	#${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_opengl3.cpp
+
+    # Use imgui-node-editor's custom imgui
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/ThirdParty/gl3w/Source/gl3w.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/ThirdParty/imgui/imgui.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/ThirdParty/imgui/imgui_widgets.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/ThirdParty/imgui/imgui_draw.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/Examples/Common/Application/Source/GLFW/imgui_impl_glfw_gl3.cpp
 
     # imgui-node-editor
-
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Include/imgui_node_editor.h
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Source/crude_json.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Source/crude_json.h

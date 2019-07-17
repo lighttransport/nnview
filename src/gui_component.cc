@@ -3,11 +3,21 @@
 #pragma clang diagnostic ignored "-Weverything"
 #endif
 
-#include "glad/glad.h"
+#ifdef _MSC_VER
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#endif
+
+//#include "glad/glad.h"
+#include "GL/gl3w.h"
 
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
+
+#include "imgui.h"
+#include "imgui_internal.h"
 
 #include "colormap.hh"
 #include "gui_component.hh"
@@ -177,10 +187,16 @@ void GUIContext::draw_imnodes() {
 
   ed::Begin("Model");
 
+  const float padding = 6.0f;
+
   for (size_t i = 0; i < _imnodes.size(); i++) {
     const ImNode& node = _imnodes[i];
 
     ed::BeginNode(node.id);
+	ImGui::BeginVertical(node.id.AsPointer());
+	ImGui::BeginHorizontal("inputs");
+	ImGui::Spring(0, padding * 2);
+
     ImGui::Text("%s", node.name.c_str());
     // ed::BeginPin(uniqueId++, ed::PinKind::Input);
     // ImGui::Text("-> In");
@@ -190,6 +206,13 @@ void GUIContext::draw_imnodes() {
     // ed::BeginPin(start_pin_id, ed::PinKind::Output);
     // ImGui::Text("Out ->");
     // ed::EndPin();
+
+	ImGui::Spring(1);
+	ImGui::EndHorizontal();
+
+	ImGui::EndVertical();
+    
+	//ImGui::Spring(0, padding * 2);
     ed::EndNode();
   }
 
@@ -230,7 +253,10 @@ void GUIContext::init() {
 void GUIContext::init_imnode_graph() {
   ed::SetCurrentEditor(_editor_context);
 
-  float node_size = 200.0f;
+  const float node_size = 160.0f;
+  const float node_padding = 40.0f;
+  const float node_rect_slot_size_y = 32.0f;
+  const float node_stride = node_size + node_padding;
 
   _imnodes.clear();
 
@@ -239,12 +265,14 @@ void GUIContext::init_imnode_graph() {
 
     ImNode imnode(GetNextNodeId(), node.name);
     imnode.name = node.name;
+	const float node_rect_height = node.outputs.size() * node_rect_slot_size_y;
+	imnode.size = ImVec2(node_size, node_rect_height);
 
-    float offset_x = node_size * float(node.depth);
+    float offset_x = node_stride * float(node.depth);
     std::cout << "depth = " << node.depth << "\n";
     std::cout << "id = " << uintptr_t(imnode.id) << "\n";
     ed::SetNodePosition(imnode.id, ImVec2(offset_x, 64.0f));
-
+	
     _imnodes.push_back(imnode);
   }
 

@@ -25,6 +25,11 @@ SOFTWARE.
 #ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
 #endif
 
 #ifdef __clang__
@@ -32,8 +37,9 @@ SOFTWARE.
 #pragma clang diagnostic ignored "-Weverything"
 #endif
 
-#include "glad/glad.h" // it looks its important to include glad before glfw
+//#include "glad/glad.h" // it looks its important to include glad before glfw
 
+#include "GL/gl3w.h"
 #include "GLFW/glfw3.h"
 
 // imgui
@@ -42,8 +48,11 @@ SOFTWARE.
 
 //#include "imgui_node_editor.h"
 
-#include "examples/imgui_impl_glfw.h"
-#include "examples/imgui_impl_opengl3.h"
+//#include "examples/imgui_impl_glfw.h"
+//#include "examples/imgui_impl_opengl3.h"
+
+// From imgui-node-editor Examples
+#include "imgui_impl_glfw_gl3.h"
 
 #ifdef __clang__
 #pragma clang diagnostic pop
@@ -63,9 +72,10 @@ SOFTWARE.
 
 static void gui_new_frame() {
   glfwPollEvents();
-  ImGui_ImplOpenGL3_NewFrame();
-  ImGui_ImplGlfw_NewFrame();
-  ImGui::NewFrame();
+  //ImGui_ImplOpenGL3_NewFrame();
+  //ImGui_ImplGlfw_NewFrame();
+  //ImGui::NewFrame();
+  ImGui_ImplGlfwGL3_NewFrame();
 }
 
 static void gl_new_frame(GLFWwindow *window, ImVec4 clear_color, int *display_w,
@@ -85,7 +95,7 @@ static void gl_gui_end_frame(GLFWwindow *window) {
   glUseProgram(0);
 
   ImGui::Render();
-  ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+  //ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
   glfwSwapBuffers(window);
   glFlush();
@@ -214,6 +224,7 @@ static void initialize_glfw_opengl_window(GLFWwindow *&window) {
   glfwSetKeyCallback(window, key_callback);
   glfwSetCharCallback(window, char_callback);
 
+#if 0
   // glad must be called after glfwMakeContextCurrent()
   if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
     std::cerr << "Failed to load OpenGL functions with gladLoadGL\n";
@@ -230,6 +241,13 @@ static void initialize_glfw_opengl_window(GLFWwindow *&window) {
     std::cerr << "OpenGL 3.0+ is not available." << std::endl;
     exit(EXIT_FAILURE);
   }
+#else
+  if (gl3wInit() != 0) {
+	std::cerr << "Failed to create OpenGL3 context.\n";
+	exit(EXIT_FAILURE);
+  }
+  ImGui::CreateContext(); // imgui-node-editor's imgui specific
+#endif
 
 #ifdef _DEBUG
   // glEnable(GL_DEBUG_OUTPUT);
@@ -253,9 +271,10 @@ static void initialize_imgui(GLFWwindow *window) {
   ImGui::CreateContext();
   auto &io = ImGui::GetIO();
 
-
+#if 0
   // Enable docking(available in imgui `docking` branch at the moment)
   io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+#endif
   // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
   const float default_font_scale = 16.f;
@@ -299,8 +318,9 @@ static void initialize_imgui(GLFWwindow *window) {
     const char* glsl_version = "#version 130";
 #endif
   // Setup Platform/Renderer bindings
-  ImGui_ImplGlfw_InitForOpenGL(window, true);
-  ImGui_ImplOpenGL3_Init(glsl_version);
+  //ImGui_ImplGlfw_InitForOpenGL(window, true);
+  //ImGui_ImplOpenGL3_Init(glsl_version);
+  ImGui_ImplGlfwGL3_Init(window, true);
 
 #ifndef FORCE_DEFAULT_STYLE
   // Setup Style
@@ -358,8 +378,8 @@ static void initialize_imgui(GLFWwindow *window) {
   colors[ImGuiCol_TabUnfocused] = ImVec4(0.098f, 0.098f, 0.098f, 1.000f);
   colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.195f, 0.195f, 0.195f, 1.000f);
   // TODO see docking branch of ImGui
-  colors[ImGuiCol_DockingPreview] = ImVec4(1.000f, 0.391f, 0.000f, 0.781f);
-  colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.180f, 0.180f, 0.180f, 0.9f);
+//  colors[ImGuiCol_DockingPreview] = ImVec4(1.000f, 0.391f, 0.000f, 0.781f);
+//  colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.180f, 0.180f, 0.180f, 0.9f);
   colors[ImGuiCol_PlotLines] = ImVec4(0.469f, 0.469f, 0.469f, 1.000f);
   colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.000f, 0.391f, 0.000f, 1.000f);
   colors[ImGuiCol_PlotHistogram] = ImVec4(0.586f, 0.586f, 0.586f, 1.000f);
@@ -377,8 +397,9 @@ static void initialize_imgui(GLFWwindow *window) {
 
 static void deinitialize_gui_and_window(GLFWwindow *window) {
   // Cleanup
-  ImGui_ImplOpenGL3_Shutdown();
-  ImGui_ImplGlfw_Shutdown();
+  //ImGui_ImplOpenGL3_Shutdown();
+  //ImGui_ImplGlfw_Shutdown();
+  ImGui_ImplGlfwGL3_Shutdown();
   ImGui::DestroyContext();
 
   glfwDestroyWindow(window);
