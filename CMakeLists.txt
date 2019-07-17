@@ -78,12 +78,15 @@ list(APPEND EXT_LIBRARIES glfw)
 # [ImGUI] and [imgui-node-editor]
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Include)
+
+# This is required for imgui_impl_opengl3
+add_definitions(-DIMGUI_IMPL_OPENGL_LOADER_GLAD)
 list(APPEND UI_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/imgui.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/imgui_widgets.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/imgui_draw.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_glfw.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_opengl2.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_opengl3.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/imgui_demo.cpp
 
     # imgui-node-editor
@@ -150,6 +153,8 @@ set(NNVIEW_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/io/weights-loader.hh
   ${CMAKE_CURRENT_SOURCE_DIR}/src/io/graph-loader.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/io/graph-loader.hh
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/gui_component.hh
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/gui_component.cc
   )
 
 # Increase warning level for clang.

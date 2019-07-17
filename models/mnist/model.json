@@ -32,7 +32,6 @@
       "n_out": 100,
       "kernel_weights_file": "LinearFunction-0-1_kernel.weights",
       "bias_weights_file": "LinearFunction-0-1_bias.weights",
-      "output_weights_file": "LinearFunction-0-1_output.weights",
       "input_shapes": [
         [
           1,
@@ -93,7 +92,6 @@
       "n_out": 100,
       "kernel_weights_file": "LinearFunction-2-1_kernel.weights",
       "bias_weights_file": "LinearFunction-2-1_bias.weights",
-      "output_weights_file": "LinearFunction-2-1_output.weights",
       "input_shapes": [
         [
           1,
@@ -154,7 +152,6 @@
       "n_out": 10,
       "kernel_weights_file": "LinearFunction-4-1_kernel.weights",
       "bias_weights_file": "LinearFunction-4-1_bias.weights",
-      "output_weights_file": "LinearFunction-4-1_output.weights",
       "input_shapes": [
         [
           1,

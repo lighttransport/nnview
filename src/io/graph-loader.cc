@@ -34,8 +34,7 @@ static std::string GetBaseDir(const std::string &filepath) {
 
 static bool LoadWeights(
     const std::vector<std::pair<std::string, std::string>> &weights,
-    const std::string base_dir,
-    std::map<std::string, Tensor> *tensors) {
+    const std::string base_dir, std::map<std::string, Tensor> *tensors) {
   // item = <name, filename>
   for (const auto &item : weights) {
     Tensor tensor;
@@ -52,13 +51,19 @@ static bool LoadWeights(
       return false;
     }
 
-    (*tensors)[item.first] = std::move(tensor);
+    std::cout << "loaded tensor/weight : " << item.first
+              << ", len(shape) = " << tensor.shape.size() << "\n";
+    (*tensors)[item.first] = tensor;
   }
 
   return true;
 }
 
 static bool ParseInputProperty(const Json &j, Node *node, Graph *graph) {
+  (void)j;
+  (void)node;
+  (void)graph;
+#if 0
   std::vector<int> shape;
   for (auto &d : j["shape"].array_items()) {
     if (d.is_number()) {
@@ -72,17 +77,18 @@ static bool ParseInputProperty(const Json &j, Node *node, Graph *graph) {
   tensor.shape = shape;
 
   int id = int(graph->tensors.size());
-  graph->tensors.emplace_back(std::move(tensor));
+  graph->tensors.push_back(tensor);
 
   assert(node->outputs.size() == 1);
 
   node->outputs[0].second = id;
+#endif
 
   return true;
 }
 
 static bool ParseLinearFunctionProperty(const Json &j, Node *node,
-                                        Graph *graph) {
+  std::vector<std::pair<std::string, std::string>> *tensor_files) {
   if (j["source"].is_string()) {
     std::string name = j["source"].string_value();
 
@@ -91,33 +97,28 @@ static bool ParseLinearFunctionProperty(const Json &j, Node *node,
   }
 
   if (j["kernel_weights_file"].is_string()) {
-    std::string name = j["kernel_weights_file"].string_value();
+    std::string filepath = j["kernel_weights_file"].string_value();
 
-    Tensor tensor;
-    tensor.name = name;
-    int id = int(graph->tensors.size());
+    (*tensor_files).push_back({filepath, filepath});
 
-    graph->tensors.push_back(tensor);
-
-    node->inputs.push_back({name, id});
+    // id will be determinted later
+    node->inputs.push_back({filepath, -1});
   }
 
   if (j["bias_weights_file"].is_string()) {
-    std::string name = j["bias_weights_file"].string_value();
+    std::string filepath = j["bias_weights_file"].string_value();
 
-    Tensor tensor;
-    tensor.name = name;
-    int id = int(graph->tensors.size());
+    (*tensor_files).push_back({filepath, filepath});
 
-    graph->tensors.push_back(tensor);
-
-    node->inputs.push_back({name, id});
+    // id will be determinted later
+    node->inputs.push_back({filepath, -1});
   }
 
   return true;
 }
 
-static int FindTensor(const std::string &name, const std::vector<Tensor> &tensors) {
+static int FindTensor(const std::string &name,
+                      const std::vector<Tensor> &tensors) {
   for (size_t i = 0; i < tensors.size(); i++) {
     if (name.compare(tensors[i].name) == 0) {
       return int(i);
@@ -241,7 +242,7 @@ bool load_json_graph(const std::string &filename, Graph *graph) {
       }
 
     } else if (type.compare("LinearFunction") == 0) {
-      bool ret = ParseLinearFunctionProperty(layer, &node, graph);
+      bool ret = ParseLinearFunctionProperty(layer, &node, &temp_tensors);
       if (!ret) {
         std::cerr << "Failed to parse `LinearFunction` layer.\n";
         return false;
@@ -259,7 +260,8 @@ bool load_json_graph(const std::string &filename, Graph *graph) {
   }
 
   for (size_t i = 0; i < temp_tensors.size(); i++) {
-    std::cout << temp_tensors[i].first << " = " << temp_tensors[i].second << "\n";
+    std::cout << temp_tensors[i].first << " = " << temp_tensors[i].second
+              << "\n";
   }
 
   // Batch load weights/tensors.
@@ -274,7 +276,8 @@ bool load_json_graph(const std::string &filename, Graph *graph) {
     for (auto &item : tensors) {
       // Rename
       item.second.name = item.first;
-      graph->tensors.emplace_back(item.second);
+      graph->tensors.push_back(item.second);
+      std::cout << "len(shape) = " << item.second.shape.size() << "\n";
     }
   }
 
@@ -315,7 +318,6 @@ bool load_json_graph(const std::string &filename, Graph *graph) {
       }
     }
   }
-
 
   return true;
 }
