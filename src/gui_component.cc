@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <iostream>
 #include <limits>
+#include <algorithm>
 
 namespace nnview {
 
