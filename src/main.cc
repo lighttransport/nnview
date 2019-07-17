@@ -284,9 +284,13 @@ static void initialize_imgui(GLFWwindow *window) {
   ImGui::CreateContext();
   auto &io = ImGui::GetIO();
 
+
   // Enable docking(available in imgui `docking` branch at the moment)
   io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
   // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+  // to allow large meshes with 16bits indices.
+  io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
 
   const float default_font_scale = 16.f;
   ImFontConfig roboto_config;
