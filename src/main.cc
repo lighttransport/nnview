@@ -21,8 +21,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+#ifdef _MSC_VER
 #ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
+#endif
 #endif
 
 #ifdef __clang__
@@ -53,7 +55,8 @@ SOFTWARE.
 #include <string>
 #include <vector>
 
-//#include "colormap.hh"
+#include "colormap.hh"
+#include "io/weights-loader.hh"
 #include "io/graph-loader.hh"
 #include "nnview_app.hh"
 #include "roboto_mono_embed.inc.h"
@@ -461,7 +464,6 @@ static void drop_callabck(GLFWwindow *window, int nums, const char **paths) {
   }
 }
 
-#if 0
 static void show_tensor_value(
     // Window position
     const ImVec2 window_pos,
@@ -543,7 +545,6 @@ static void show_tensor_value(
     }
   }
 }
-#endif
 
 // This should be called only once at the first time
 static void init_imnode_graph(const nnview::Graph &graph,
@@ -602,7 +603,6 @@ static void node_window(std::vector<ImNode> &nodes) {
   ed::End();
 }
 
-#if 0
 static void tensor_window(const GLuint texid, const nnview::Tensor& tensor) {
   static float scale = 4.0f;  // Set 4x for better initial visual
 
@@ -712,6 +712,7 @@ static GLuint gen_texture(const nnview::Tensor& tensor) {
   return texid;
 }
 
+#if 0
 static void update_texture(GLuint texid, const nnview::Tensor& tensor) {
 
   std::vector<uint8_t> img = tensor_to_color(tensor);
@@ -728,12 +729,13 @@ int main(int argc, char **argv) {
   (void)argc;
   (void)argv;
 
-  if (argc < 2) {
-    std::cerr << "Need model.json\n";
+  if (argc < 3) {
+    std::cerr << "Need model.json input.weights\n";
     return EXIT_FAILURE;
   }
 
   nnview::Graph graph;
+  nnview::Tensor tensor;
 
   std::string graph_filename = argv[1];
 
@@ -741,6 +743,16 @@ int main(int argc, char **argv) {
     bool ret = nnview::load_json_graph(graph_filename, &graph);
     if (!ret) {
       std::cerr << "Failed to read graph : " << graph_filename << "\n";
+      return EXIT_FAILURE;
+    }
+  }
+
+  // HACK
+  std::string tensor_filename = argv[2];
+  {
+    bool ret = nnview::load_weights(tensor_filename, &tensor);
+    if (!ret) {
+      std::cerr << "Failed to read tensor : " << tensor_filename << "\n";
       return EXIT_FAILURE;
     }
   }
@@ -774,7 +786,7 @@ int main(int argc, char **argv) {
   g_Context = ed::CreateEditor();
 
   // Setup texture for Tensor display
-  // GLuint tensor_texid = gen_texture(tensor);
+  GLuint tensor_texid = gen_texture(tensor);
 
   ImVec4 background_color = ImVec4(0.05f, 0.05f, 0.08f, 1.00f);
 
@@ -788,7 +800,7 @@ int main(int argc, char **argv) {
 
     node_window(imnodes);
 
-    // tensor_window(tensor_texid, tensor);
+    tensor_window(tensor_texid, tensor);
 
     // update_texture(tensor_texid, tensor);
 
