@@ -36,6 +36,20 @@ enum class PinType {
 
 enum class PinKind { Output, Input };
 
+struct Link {
+  ed::LinkId ID;
+
+  ed::PinId StartPinID;
+  ed::PinId EndPinID;
+
+  ImColor Color;
+
+  Link(ed::LinkId id, ed::PinId startPinId, ed::PinId endPinId)
+      : ID(id), StartPinID(startPinId), EndPinID(endPinId),
+        Color(255, 255, 255) {}
+};
+
+
 struct Pin {
   ed::PinId ID;
   ImNode *ImNode;
@@ -68,9 +82,13 @@ class GUIContext
 
   nnview::Graph _graph;
 
+  // Node and Link(connection) information using imgui-node-editor
   std::vector<ImNode> _imnodes;
+  std::vector<Link> _links;
 
+  // OpenGL texture id for displaying Tensor as Texture(Image)
   std::vector<GLuint> _tensor_texture_ids;
+
   GLuint _background_texture_id = 0;
 
   ed::EditorContext *_editor_context = nullptr;
