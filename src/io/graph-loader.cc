@@ -298,8 +298,24 @@ bool load_json_graph(const std::string &filename, Graph *graph) {
 
   // Establish the link of inputs and outpus for each layers.
   {
-    for (size_t i = 0; i < graph->nodes.size(); i++) {
-      Node &node = graph->nodes[i];
+    for (size_t n = 0; n < graph->nodes.size(); n++) {
+      Node &node = graph->nodes[n];
+
+      for (size_t i = 0; i < node.inputs.size(); i++) {
+        const std::string &name = node.inputs[i].first;
+
+        int tensor_id = FindTensor(name, graph->tensors);
+        if (tensor_id == -1) {
+          std::cerr << "Input layer \"" << name
+                    << "\" not found in the graph.\n";
+          return false;
+        } else {
+          std::cerr << "Input layer \"" << name
+                    << "\" has connection to tensor id " << tensor_id << "\n";
+        }
+
+        node.inputs[i].second = tensor_id;
+      }
 
       for (size_t o = 0; o < node.outputs.size(); o++) {
         const std::string &name = node.outputs[o].first;

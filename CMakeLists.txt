@@ -89,6 +89,8 @@ list(APPEND EXT_LIBRARIES glfw)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/ThirdParty/imgui)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/Examples/Common/Application/Source/GLFW)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/Examples/Common/BlueprintUtilities/Include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/Examples/Common/BlueprintUtilities/Source)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/ThirdParty/gl3w/Include)
 
 # This is required for imgui_impl_opengl3
@@ -106,6 +108,11 @@ list(APPEND UI_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/ThirdParty/imgui/imgui_widgets.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/ThirdParty/imgui/imgui_draw.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/Examples/Common/Application/Source/GLFW/imgui_impl_glfw_gl3.cpp
+
+    # Borrow some codes in Examples/Common/BlueprintUtilities
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/Examples/Common/BlueprintUtilities/Source/ax/Drawing.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/Examples/Common/BlueprintUtilities/Source/ax/Builders.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/Examples/Common/BlueprintUtilities/Source/ax/Widgets.cpp
 
     # imgui-node-editor
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui-node-editor/NodeEditor/Include/imgui_node_editor.h

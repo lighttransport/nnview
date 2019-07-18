@@ -24,7 +24,14 @@ namespace nnview {
 struct ImNode;
 
 enum class PinType {
-  Flow,
+    Flow,
+    Bool,
+    Int,
+    Float,
+    String,
+    Object,
+    Function,
+    Delegate,
 };
 
 enum class PinKind { Output, Input };
@@ -62,7 +69,9 @@ class GUIContext
   nnview::Graph _graph;
 
   std::vector<ImNode> _imnodes;
+
   std::vector<GLuint> _tensor_texture_ids;
+  GLuint _background_texture_id = 0;
 
   ed::EditorContext *_editor_context = nullptr;
 

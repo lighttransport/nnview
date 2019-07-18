@@ -12,6 +12,9 @@
 //#include "glad/glad.h"
 #include "GL/gl3w.h"
 
+#include "ax/Widgets.h"
+#include "ax/Builders.h"
+
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
@@ -22,12 +25,17 @@
 #include "colormap.hh"
 #include "gui_component.hh"
 
+#include <algorithm>
 #include <cstdint>
 #include <iostream>
 #include <limits>
-#include <algorithm>
+#include <array>
+
+namespace util = ax::NodeEditor::Utilities;
 
 namespace nnview {
+
+using ax::Widgets::IconType;
 
 inline uint8_t ftoc(const float x) {
   int i = int(x * 255.0f);
@@ -66,6 +74,32 @@ static std::vector<uint8_t> tensor_to_color(const nnview::Tensor& tensor) {
 
   return img;
 }
+
+static GLuint create_gray_texture()
+{
+  static constexpr std::array<uint8_t, 16> data{
+      {35, 35, 35, 255, 35, 35, 35, 255,
+      35, 35, 35, 255, 35, 35, 35, 255}
+  };
+
+  int width = 2;
+  int height = 2;
+
+  GLuint texid = 0;
+  GLint last_texture = 0;
+  glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
+
+  glGenTextures(1, &texid);
+  glBindTexture(GL_TEXTURE_2D, texid);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &data[0]);
+
+  glBindTexture(GL_TEXTURE_2D, GLuint(last_texture));
+
+  return texid;
+}
+
 
 static void show_tensor_value(
     // Window position
@@ -182,59 +216,177 @@ static ed::NodeId GetNextNodeId() {
   return static_cast<uintptr_t>(GetNextId());
 }
 
-static inline ImRect ImGui_GetItemRect() {
-	return ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
-}
+static ImColor GetIconColor(PinType type) {
+  switch (type) {
+    case PinType::Flow:
+      return ImColor(255, 255, 255);
+    case PinType::Bool:
+      return ImColor(220, 48, 48);
+    case PinType::Int:
+      return ImColor(68, 201, 156);
+    case PinType::Float:
+      return ImColor(147, 226, 74);
+    case PinType::String:
+      return ImColor(124, 21, 153);
+    case PinType::Object:
+      return ImColor(51, 150, 215);
+    case PinType::Function:
+      return ImColor(218, 0, 183);
+    case PinType::Delegate:
+      return ImColor(255, 48, 48);
+  }
+};
+
+static void DrawPinIcon(const Pin& pin, bool connected, int alpha) {
+  const int PinIconSize = 24;
+
+  IconType iconType;
+  ImColor color = GetIconColor(pin.Type);
+  color.Value.w = alpha / 255.0f;
+  switch (pin.Type) {
+    case PinType::Flow:
+      iconType = IconType::Flow;
+      break;
+    case PinType::Bool:
+      iconType = IconType::Circle;
+      break;
+    case PinType::Int:
+      iconType = IconType::Circle;
+      break;
+    case PinType::Float:
+      iconType = IconType::Circle;
+      break;
+    case PinType::String:
+      iconType = IconType::Circle;
+      break;
+    case PinType::Object:
+      iconType = IconType::Circle;
+      break;
+    case PinType::Function:
+      iconType = IconType::Circle;
+      break;
+    case PinType::Delegate:
+      iconType = IconType::Square;
+      break;
+  }
+
+  ax::Widgets::Icon(ImVec2(PinIconSize, PinIconSize), iconType, connected,
+                    color, ImColor(32, 32, 32, alpha));
+};
+
+//static inline ImRect ImGui_GetItemRect() {
+//  return ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+//}
 
 void GUIContext::draw_imnodes() {
   ed::SetCurrentEditor(_editor_context);
 
   ed::Begin("Model");
 
-  const float padding = 6.0f;
+  //const float padding = 6.0f;
+
+  util::BlueprintNodeBuilder builder(
+    ImTextureID(intptr_t(_background_texture_id)),
+    /* tex width */2, /* tex height */2);
+
 
   for (size_t i = 0; i < _imnodes.size(); i++) {
     const ImNode& node = _imnodes[i];
 
-    ed::BeginNode(node.id);
-	ImGui::PushID(node.id.AsPointer());
-	ImGui::BeginVertical(node.id.AsPointer());
-	ImGui::BeginHorizontal("inputs");
-	ImGui::Spring(0, padding * 2);
+    builder.Begin(node.id);
+    builder.Header(node.color);
 
-    //ImGui::Text("%s", node.name.c_str());
+    ImGui::Spring(0);
+    ImGui::TextUnformatted(node.name.c_str());
+    ImGui::Spring(1);
+    ImGui::Dummy(ImVec2(0, 28));
 
-	if (!node.outputs.empty()) {
-		auto& pin = node.outputs[0];
+    builder.EndHeader();
 
-		ImGui::Dummy(ImVec2(0, padding));
-		ImGui::Spring(1, 0);
-        ImGui::Text("bora");
+    //ed::BeginNode(node.id);
+    //ImGui::PushID(node.id.AsPointer());
+    //ImGui::BeginVertical(node.id.AsPointer());
+    //ImGui::BeginHorizontal("inputs");
+    //ImGui::Spring(0, padding * 2);
 
-		ImRect inputs_rect = ImGui_GetItemRect();
+    // ImGui::Text("%s", node.name.c_str());
 
-		ed::PushStyleVar(ed::StyleVar_PinArrowSize, 10.0f);
-        ed::PushStyleVar(ed::StyleVar_PinArrowWidth, 10.0f);
-        ed::PushStyleVar(ed::StyleVar_PinCorners, 12.0f);
+    if (!node.inputs.empty()) {
+      auto& pin = node.inputs[0];
 
-	    ed::BeginPin(pin.ID, ed::PinKind::Input);
+      auto alpha = ImGui::GetStyle().Alpha;
 
-		ed::PinPivotRect(inputs_rect.GetTL(), inputs_rect.GetBR());
-        ed::PinRect(inputs_rect.GetTL(), inputs_rect.GetBR());
-        ed::EndPin();
+      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+      builder.Input(pin.ID);
 
-		ed::PopStyleVar(3);
+      if (!pin.Name.empty()) {
+        ImGui::Spring(0);
+        ImGui::TextUnformatted(pin.Name.c_str());
+      }
 
-        }
+      ImGui::Spring(0);
+      DrawPinIcon(pin, /* linked*/ false, int(alpha * 255.0f));
 
-	ImGui::Spring(1);
-	ImGui::EndHorizontal();
+      ImGui::PopStyleVar();
 
-	ImGui::EndVertical();
-    
-	//ImGui::Spring(0, padding * 2);
-	ImGui::PopID();
-    ed::EndNode();
+      builder.EndInput();
+
+    }
+
+    if (!node.outputs.empty()) {
+      auto& pin = node.outputs[0];
+
+      //ImGui::Dummy(ImVec2(0, padding));
+      //ImGui::Spring(1, 0);
+      //ImGui::Text("bora");
+
+      //ImRect inputs_rect = ImGui_GetItemRect();
+
+      auto alpha = ImGui::GetStyle().Alpha;
+
+      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+      builder.Output(pin.ID);
+
+      if (!pin.Name.empty()) {
+        ImGui::Spring(0);
+        ImGui::TextUnformatted(pin.Name.c_str());
+      }
+
+      ImGui::Spring(0);
+      DrawPinIcon(pin, /* linked*/ false, int(alpha * 255.0f));
+
+      ImGui::PopStyleVar();
+
+      builder.EndOutput();
+
+      //ed::BeginPin(pin.ID, ed::PinKind::Input);
+      //ed::PinPivotRect(inputs_rect.GetTL(), inputs_rect.GetBR());
+      //ed::PinRect(inputs_rect.GetTL(), inputs_rect.GetBR());
+      //ImGui::Text("bora");
+      //ed::EndPin();
+      //ed::PopStyleVar(3);
+    }
+
+    builder.End();
+
+    // draw link
+    //for (auto& link : s_Links) {
+    //  ed::Link(link.ID, link.StartPinID, link.EndPinID, link.Color, 2.0f);
+    //}
+
+
+    //ImGui::Spring(1);
+    //ImGui::EndHorizontal();
+
+    //ImGui::BeginHorizontal("content_frame");
+    //ImGui::Text("doradora");
+    //ImGui::EndHorizontal();
+
+    //ImGui::EndVertical();
+
+    // ImGui::Spring(0, padding * 2);
+    //ImGui::PopID();
+    //ed::EndNode();
   }
 
 #if 0
@@ -254,53 +406,119 @@ void GUIContext::draw_imnodes() {
 void GUIContext::init() {
   if (_editor_context != nullptr) {
     // ???
-    std::cerr << "EditorContext is already initialized or filled with invalid value.\n";
+    std::cerr << "EditorContext is already initialized or filled with invalid "
+                 "value.\n";
     exit(-1);
   }
 
   _editor_context = ed::CreateEditor();
 
-  std::cout << "num tensors"  << _graph.tensors.size() << "\n";
+  std::cout << "num tensors" << _graph.tensors.size() << "\n";
   for (size_t i = 0; i < _graph.tensors.size(); i++) {
-    std::cout << "shape size "  << _graph.tensors[i].shape.size() << "\n";
+    std::cout << "shape size " << _graph.tensors[i].shape.size() << "\n";
   }
 
-  //std::cout << "tensor "  << _graph.tensors[i].shape[0] << ", " << _graph.tensors[i].shape[1] << std::endl;
+  // std::cout << "tensor "  << _graph.tensors[i].shape[0] << ", " <<
+  // _graph.tensors[i].shape[1] << std::endl;
   GLuint texid = gen_gl_texture(_graph.tensors[0]);
 
   _tensor_texture_ids.push_back(texid);
+
+  // Create whilte BG texture.
+  _background_texture_id = create_gray_texture();
 }
 
 void GUIContext::init_imnode_graph() {
   ed::SetCurrentEditor(_editor_context);
 
-  const float node_size = 160.0f;
-  const float node_padding = 40.0f;
+  const float node_size = 128.0f;
+  const float node_padding = 160.0f;
+  const float layer_stride = node_size + node_padding;
   const float node_rect_slot_size_y = 32.0f;
-  const float node_stride = node_size + node_padding;
+  const float tensor_x_offset = node_size + 64.0f;
+
 
   _imnodes.clear();
 
+  // Create node for layers
   for (size_t i = 0; i < _graph.nodes.size(); i++) {
     const nnview::Node& node = _graph.nodes[i];
+    {
 
-    ImNode imnode(GetNextNodeId(), node.name);
-    imnode.name = node.name;
-	const float node_rect_height = node.outputs.size() * node_rect_slot_size_y;
-	imnode.size = ImVec2(node_size, node_rect_height);
+      ImNode imnode(GetNextNodeId(), node.name);
+      const float node_rect_height = node.outputs.size() * node_rect_slot_size_y;
+      imnode.size = ImVec2(node_size, node_rect_height);
 
-	// HACK
-	Pin pin(GetNextId(), "Out",  PinType::Flow);
+      // HACK
+      Pin pin(uint32_t(GetNextId()), "Out", PinType::Flow);
 
-	imnode.outputs.emplace_back(pin);
+      imnode.outputs.emplace_back(pin);
 
-    float offset_x = node_stride * float(node.depth);
-    std::cout << "depth = " << node.depth << "\n";
+      float offset_x = layer_stride * float(node.depth);
+      std::cout << "depth = " << node.depth << "\n";
+      std::cout << "id = " << uintptr_t(imnode.id) << "\n";
+      ed::SetNodePosition(imnode.id, ImVec2(offset_x, 64.0f));
+
+      _imnodes.push_back(imnode);
+    }
+
+    // Create node for tensors connected to this node as an input.
+    for (size_t t = 0; t < node.inputs.size(); t++) {
+      const StrId &str_id = node.inputs[t];
+      std::cout << "tensor id = " << str_id.second << "\n";
+
+      assert(str_id.second >= 0);
+      assert(str_id.second < int(_graph.tensors.size()));
+
+      const nnview::Tensor& tensor = _graph.tensors[size_t(str_id.second)];
+
+      ImNode imnode(GetNextNodeId(), tensor.name);
+
+      const float node_rect_width = tensor.shape[1];
+      const float node_rect_height = tensor.shape[0];
+
+      imnode.size = ImVec2(node_rect_width, node_rect_height);
+
+      // HACK
+      Pin pin(uint32_t(GetNextId()), /* empty name */"", PinType::Flow);
+
+      imnode.outputs.emplace_back(pin);
+
+      float offset_x = layer_stride * float(node.depth) + tensor_x_offset;
+      float offset_y = 128.0f * float(t);
+      ed::SetNodePosition(imnode.id, ImVec2(offset_x, 264.0f + offset_y));
+
+      _imnodes.push_back(imnode);
+
+    }
+
+  }
+
+#if 0
+  for (size_t i = 0; i < _graph.tensors.size(); i++) {
+    const nnview::Tensor& tensor = _graph.tensors[i];
+
+    ImNode imnode(GetNextNodeId(), tensor.name);
+
+    const float node_rect_width = tensor.shape[1];
+    const float node_rect_height = tensor.shape[0];
+
+    imnode.size = ImVec2(node_rect_width, node_rect_height);
+
+    // HACK
+    Pin pin(uint32_t(GetNextId()), /* empty name */"", PinType::Flow);
+
+    imnode.outputs.emplace_back(pin);
+
+    // FIXME(LTE): Compute good depth
+    float offset_x = node_stride * float(i);
+    std::cout << "depth = " << i << "\n";
     std::cout << "id = " << uintptr_t(imnode.id) << "\n";
-    ed::SetNodePosition(imnode.id, ImVec2(offset_x, 64.0f));
-	
+    ed::SetNodePosition(imnode.id, ImVec2(offset_x, 264.0f));
+
     _imnodes.push_back(imnode);
   }
+#endif
 
   ed::NavigateToContent();
 }
