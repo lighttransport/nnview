@@ -367,6 +367,7 @@ void GUIContext::draw_imnodes() {
 
     builder.End();
 
+
     // draw link
     for (auto& link : _links) {
       ed::Link(link.ID, link.StartPinID, link.EndPinID, link.Color, 2.0f);
@@ -435,6 +436,8 @@ void GUIContext::init_imnode_graph() {
   const float tensor_x_offset = node_size + 64.0f;
 
   _imnodes.clear();
+  _links.clear();
+
 
   std::map<int, int> tensor_id_imnode_map; // <id, imnode index>
 
@@ -476,7 +479,6 @@ void GUIContext::init_imnode_graph() {
 
 	const size_t imnode_idx = _imnodes.size() - 1;
 
-    _links.clear();
 
 	assert(_imnodes[imnode_idx].inputs.size() == node.inputs.size());
     assert(_imnodes[imnode_idx].outputs.size() == node.outputs.size());
@@ -510,11 +512,8 @@ void GUIContext::init_imnode_graph() {
 
           tensor_imnode.size = ImVec2(node_rect_width, node_rect_height);
 
-          // Tensor ImNode has single input and output pin
-          Pin in_pin(uint32_t(GetNextId()), /* empty name */ "", PinType::Flow);
           Pin out_pin(uint32_t(GetNextId()), /* empty name */ "", PinType::Flow);
 
-          tensor_imnode.inputs.emplace_back(in_pin);
           tensor_imnode.outputs.emplace_back(out_pin);
 
           float offset_x = layer_stride * float(node.depth) + tensor_x_offset;
@@ -525,7 +524,8 @@ void GUIContext::init_imnode_graph() {
 
 		  Link link(GetNextLinkId(), out_pin.ID, _imnodes[imnode_idx].inputs[t].ID);
 
-          _links.emplace_back(link);
+		  std::cout << "link (" << intptr_t(&out_pin.ID) << ") -> (" << intptr_t(&_imnodes[imnode_idx].inputs[t].ID) << std::endl;
+          _links.push_back(link);
 
           _imnodes.push_back(tensor_imnode);
         }
@@ -539,6 +539,17 @@ void GUIContext::init_imnode_graph() {
 
           if (tensor_id_imnode_map.find(str_id.second) !=
               tensor_id_imnode_map.end()) {
+
+			size_t tensor_imnode_idx = tensor_id_imnode_map[str_id.second];
+			ImNode &tensor_imnode = _imnodes[tensor_imnode_idx];
+
+			if (tensor_imnode.outputs.size() == 0) {
+				// ImNode for Tensor is already registered but no input pin registered
+				Pin in_pin(uint32_t(GetNextId()), /* empty name */ "", PinType::Flow);
+
+	            tensor_imnode.inputs.emplace_back(in_pin);
+            }
+
             continue;
           }
 
@@ -552,10 +563,10 @@ void GUIContext::init_imnode_graph() {
           tensor_imnode.size = ImVec2(node_rect_width, node_rect_height);
 
           Pin in_pin(uint32_t(GetNextId()), /* empty name */ "", PinType::Flow);
-          Pin out_pin(uint32_t(GetNextId()), /* empty name */ "", PinType::Flow);
+          //Pin out_pin(uint32_t(GetNextId()), /* empty name */ "", PinType::Flow);
 
           tensor_imnode.inputs.emplace_back(in_pin);
-          tensor_imnode.outputs.emplace_back(out_pin);
+          //tensor_imnode.outputs.emplace_back(out_pin);
 
           float offset_x = layer_stride * float(node.depth) + tensor_x_offset;
           float offset_y = 128.0f * float(t);
