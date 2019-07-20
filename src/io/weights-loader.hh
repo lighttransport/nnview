@@ -19,7 +19,6 @@ namespace nnview {
 
 bool load_weights(const std::string &filename, Tensor *tensor);
 
+}  // namespace nnview
 
-} // nnview
-
-#endif // NNVIEW_IO_WEIGHT_LOADER_H_
+#endif  // NNVIEW_IO_WEIGHT_LOADER_H_

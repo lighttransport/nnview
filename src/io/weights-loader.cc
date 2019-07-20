@@ -1,8 +1,8 @@
 #include "io/weights-loader.hh"
 
+#include <cassert>
 #include <fstream>
 #include <iostream>
-#include <cassert>
 
 namespace nnview {
 
@@ -29,7 +29,8 @@ bool load_weights(const std::string &filename, Tensor *tensor) {
 
   // Up to 5D tensor
   int d[5];
-  int n = sscanf(shape_line.c_str(), "%d,%d,%d,%d,%d", &d[0], &d[1], &d[2], &d[3], &d[4]);
+  int n = sscanf(shape_line.c_str(), "%d,%d,%d,%d,%d", &d[0], &d[1], &d[2],
+                 &d[3], &d[4]);
 
   size_t num_items = 1;
   std::vector<int> shape;
@@ -45,7 +46,8 @@ bool load_weights(const std::string &filename, Tensor *tensor) {
   }
 
   if (shape.size() == 0) {
-    std::cerr << "Failed to parse shape information: " << shape_line << std::endl;
+    std::cerr << "Failed to parse shape information: " << shape_line
+              << std::endl;
     return false;
   }
 
@@ -61,14 +63,17 @@ bool load_weights(const std::string &filename, Tensor *tensor) {
   tensor->shape = shape;
   tensor->name = filename;
 
-  ifs.read(reinterpret_cast<char *>(tensor->data.data()), int64_t(num_items) * datasize);
+  ifs.read(reinterpret_cast<char *>(tensor->data.data()),
+           int64_t(num_items) * datasize);
 
   if (!ifs) {
-    std::cerr << "Failed to read [" << std::to_string(int64_t(num_items) * datasize) << "] bytes. only [" << ifs.gcount() << "] could be read.\n";
+    std::cerr << "Failed to read ["
+              << std::to_string(int64_t(num_items) * datasize)
+              << "] bytes. only [" << ifs.gcount() << "] could be read.\n";
     return false;
   }
 
   return true;
 }
 
-} // namespace nnview
+}  // namespace nnview

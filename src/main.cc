@@ -215,7 +215,7 @@ static void initialize_glfw_opengl_window(GLFWwindow *&window) {
 #endif
 
 
-  window = glfwCreateWindow(1200, 800, "nnview", nullptr, nullptr);
+  window = glfwCreateWindow(1600, 900, "nnview", nullptr, nullptr);
   glfwMakeContextCurrent(window);
 
   glfwSwapInterval(1); // Enable vsync
@@ -525,6 +525,7 @@ int main(int argc, char **argv) {
     gl_new_frame(window, background_color, &display_w, &display_h);
 
     gui_ctx.draw_imnodes();
+    gui_ctx.draw_tensor();
 
     //tensor_window(tensor_texid, tensor);
 

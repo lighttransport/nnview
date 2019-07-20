@@ -383,12 +383,37 @@ void GUIContext::draw_imnodes() {
     // ed::EndNode();
   }
 
-#if 0
-    // Test link
-    if (!ed::Link(/*link_id */ 1, start_pin_id, end_pin_id)) {
-      std::cerr << "Link fail\n";
-    }
+  // Update _active_tensor_idx if selected node is a tensor node
+  {
+    std::vector<ed::NodeId> selectedNodes;
+    selectedNodes.resize(size_t(ed::GetSelectedObjectCount()));
 
+    int nodeCount = ed::GetSelectedNodes(
+        selectedNodes.data(), static_cast<int>(selectedNodes.size()));
+
+    // Show single node info
+    if (nodeCount == 1) {
+      int selected_node_id = int(intptr_t(selectedNodes[0].AsPointer()));
+      if (_node_id_to_imnode_idx_map.find(selected_node_id) !=
+          _node_id_to_imnode_idx_map.end()) {
+        int imnode_idx = _node_id_to_imnode_idx_map[selected_node_id];
+
+        // std::cout << "imnode_idx = " << std::to_string(imnode_idx) << "\n";
+
+        if ((imnode_idx >= 0) && (imnode_idx < int(_imnodes.size()))) {
+          int tensor_idx = _imnodes[size_t(imnode_idx)].tensor_id;
+
+          // std::cout << "selected tensor idx = " << std::to_string(tensor_idx)
+          // << "\n";
+          if (tensor_idx != -1) {
+            _active_tensor_idx = tensor_idx;
+          }
+        }
+      }
+    }
+  }
+
+#if 0
     if (ImGui::Button("Flow")) {
       ed::Flow(/*link_id */ 1);
     }
@@ -410,13 +435,13 @@ void GUIContext::init() {
   std::cout << "num tensors" << _graph.tensors.size() << "\n";
   for (size_t i = 0; i < _graph.tensors.size(); i++) {
     std::cout << "shape size " << _graph.tensors[i].shape.size() << "\n";
+
+    // std::cout << "tensor "  << _graph.tensors[i].shape[0] << ", " <<
+    // _graph.tensors[i].shape[1] << std::endl;
+    GLuint texid = gen_gl_texture(_graph.tensors[i]);
+
+    _tensor_texture_ids.push_back(texid);
   }
-
-  // std::cout << "tensor "  << _graph.tensors[i].shape[0] << ", " <<
-  // _graph.tensors[i].shape[1] << std::endl;
-  GLuint texid = gen_gl_texture(_graph.tensors[0]);
-
-  _tensor_texture_ids.push_back(texid);
 
   // Create whilte BG texture.
   _background_texture_id = create_gray_texture();
@@ -444,7 +469,8 @@ void GUIContext::init_imnode_graph() {
     std::cout << "  outputs = " << std::to_string(node.outputs.size()) << "\n";
 
     {
-      ImNode imnode(GetNextNodeId(), node.name);
+      ed::NodeId node_id = GetNextNodeId();
+      ImNode imnode(node_id, node.name);
       const float node_rect_height =
           node.outputs.size() * node_rect_slot_size_y;
       imnode.size = ImVec2(node_size, node_rect_height);
@@ -514,7 +540,9 @@ void GUIContext::init_imnode_graph() {
 
       const nnview::Tensor &tensor = _graph.tensors[size_t(slot.id)];
 
-      ImNode tensor_imnode(GetNextNodeId(), tensor.name);
+      ed::NodeId imnode_id = GetNextNodeId();
+      ImNode tensor_imnode(imnode_id, tensor.name);
+      tensor_imnode.tensor_id = slot.id;
 
       const float node_rect_width = tensor.shape[1];
       const float node_rect_height = tensor.shape[0];
@@ -538,6 +566,9 @@ void GUIContext::init_imnode_graph() {
       std::cout << "link (" << intptr_t(&out_pin.ID) << ") -> ("
                 << intptr_t(&_imnodes[imnode_idx].inputs[t].ID) << std::endl;
       _links.push_back(link);
+
+      _node_id_to_imnode_idx_map[int(intptr_t(imnode_id.AsPointer()))] =
+          int(_imnodes.size());
 
       _imnodes.push_back(tensor_imnode);
     }
@@ -565,7 +596,9 @@ void GUIContext::init_imnode_graph() {
 
       const nnview::Tensor &tensor = _graph.tensors[size_t(slot.id)];
 
-      ImNode tensor_imnode(GetNextNodeId(), tensor.name);
+      ed::NodeId imnode_id = GetNextNodeId();
+      ImNode tensor_imnode(imnode_id, tensor.name);
+      tensor_imnode.tensor_id = slot.id;
 
       const float node_rect_width = tensor.shape[1];
       const float node_rect_height = tensor.shape[0];
@@ -591,6 +624,10 @@ void GUIContext::init_imnode_graph() {
       ed::SetNodePosition(tensor_imnode.id, ImVec2(offset_x, 64.0f + offset_y));
 
       tensor_id_imnode_map[slot.id] = int(_imnodes.size());
+
+      _node_id_to_imnode_idx_map[int(intptr_t(imnode_id.AsPointer()))] =
+          int(_imnodes.size());
+
       _imnodes.push_back(tensor_imnode);
     }
   }
@@ -605,8 +642,8 @@ void GUIContext::draw_tensor() {
                ImGuiWindowFlags_HorizontalScrollbar);
 
   {
-    std::string name = (_active_tensor_id > -1)
-                           ? _graph.tensors[size_t(_active_tensor_id)].name
+    std::string name = (_active_tensor_idx > -1)
+                           ? _graph.tensors[size_t(_active_tensor_idx)].name
                            : "no selection";
     ImGui::Text("Tensor : %s", name.c_str());
 
@@ -624,17 +661,20 @@ void GUIContext::draw_tensor() {
   // Child window looks not working well.
   // Create dedicated window for Tensor image display
 
-  if (_active_tensor_id == -1) {
+  if (_active_tensor_idx == -1) {
     return;
   }
 
-  if (size_t(_active_tensor_id) >= _tensor_texture_ids.size()) {
+  // std::cout << "active_tensor_idx " << std::to_string(_active_tensor_idx) <<
+  // ", tensor_texids = " << std::to_string(_tensor_texture_ids.size()) << "\n";
+
+  if (size_t(_active_tensor_idx) >= _tensor_texture_ids.size()) {
     // ???
     return;
   }
 
-  GLuint texid = _tensor_texture_ids[size_t(_active_tensor_id)];
-  const Tensor &tensor = _graph.tensors[size_t(_active_tensor_id)];
+  GLuint texid = _tensor_texture_ids[size_t(_active_tensor_idx)];
+  const Tensor &tensor = _graph.tensors[size_t(_active_tensor_idx)];
 
   // Create child so that scroll bar only effective to the image region.
   ImGui::Begin("Tensor Image", /* p_open */ nullptr,

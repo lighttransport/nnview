@@ -87,8 +87,9 @@ static bool ParseInputProperty(const Json &j, Node *node, Graph *graph) {
   return true;
 }
 
-static bool ParseLinearFunctionProperty(const Json &j, Node *node,
-  std::vector<std::pair<std::string, std::string>> *tensor_files) {
+static bool ParseLinearFunctionProperty(
+    const Json &j, Node *node,
+    std::vector<std::pair<std::string, std::string>> *tensor_files) {
   if (j["source"].is_string()) {
     std::string name = j["source"].string_value();
 
