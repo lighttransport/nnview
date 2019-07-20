@@ -4,6 +4,15 @@ nnview can display weights and graph structure of neural network model.
 
 ![img](images/nnview.jpg)
 
+## Status
+
+Very early stage. W.I.P.
+
+* [x] LinearFunction
+* [x] ReLU
+* [ ] Convolution2D
+* [ ] and more
+
 
 ## How it works
 

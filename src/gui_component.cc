@@ -278,9 +278,11 @@ static void DrawPinIcon(const Pin &pin, bool connected, int alpha) {
 //}
 
 void GUIContext::draw_imnodes() {
+  ImGui::Begin("Graph");
+
   ed::SetCurrentEditor(_editor_context);
 
-  ed::Begin("Model");
+  ed::Begin("Graph");
 
   // const float padding = 6.0f;
 
@@ -420,6 +422,7 @@ void GUIContext::draw_imnodes() {
 #endif
 
   ed::End();
+  ImGui::End();
 }
 
 void GUIContext::init() {
