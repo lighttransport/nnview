@@ -6,7 +6,14 @@
 
 namespace nnview {
 
-typedef std::pair<std::string, int> StrId;
+struct Slot
+{
+  std::string name;       // name of tensor/weight
+  std::string slot_name;  // Appear in connection name on GUI node
+  int id; // tensor id
+
+  Slot(const std::string &_name, const std::string &_slot_name, int _id) : name(_name), slot_name(_slot_name), id(_id) {}
+};
 
 enum LayerType
 {
@@ -14,6 +21,7 @@ enum LayerType
   LAYER_OUTPUT,
   LAYER_LINEAR_FUNCTION,
   LAYER_RELU,
+  LAYER_TENSOR,
 };
 
 class Node
@@ -24,8 +32,8 @@ class Node
   int depth = 0; // Depth from the input node. Use this value for initial node layout.
   std::string name;
 
-  std::vector<StrId> inputs;
-  std::vector<StrId> outputs;
+  std::vector<Slot> inputs;
+  std::vector<Slot> outputs;
 };
 
 class Tensor
@@ -42,8 +50,8 @@ class Tensor
 class Graph
 {
  public:
-  std::vector<StrId> inputs;
-  std::vector<StrId> outputs;
+  std::vector<Slot> inputs;
+  std::vector<Slot> outputs;
 
   std::vector<Node> nodes;
   std::vector<Tensor> tensors;

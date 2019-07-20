@@ -93,7 +93,7 @@ static bool ParseLinearFunctionProperty(const Json &j, Node *node,
     std::string name = j["source"].string_value();
 
     // id will be determinted later
-    node->inputs.push_back({name, -1});
+    node->inputs.push_back(Slot(name, "input", -1));
   }
 
   if (j["kernel_weights_file"].is_string()) {
@@ -102,7 +102,7 @@ static bool ParseLinearFunctionProperty(const Json &j, Node *node,
     (*tensor_files).push_back({filepath, filepath});
 
     // id will be determinted later
-    node->inputs.push_back({filepath, -1});
+    node->inputs.push_back(Slot(filepath, "W", -1));
   }
 
   if (j["bias_weights_file"].is_string()) {
@@ -111,7 +111,18 @@ static bool ParseLinearFunctionProperty(const Json &j, Node *node,
     (*tensor_files).push_back({filepath, filepath});
 
     // id will be determinted later
-    node->inputs.push_back({filepath, -1});
+    node->inputs.push_back(Slot(filepath, "b", -1));
+  }
+
+  return true;
+}
+
+static bool ParseReLUProperty(const Json &j, Node *node) {
+  if (j["source"].is_string()) {
+    std::string name = j["source"].string_value();
+
+    // id will be determinted later
+    node->inputs.push_back(Slot(name, "input", -1));
   }
 
   return true;
@@ -183,6 +194,7 @@ bool load_json_graph(const std::string &filename, Graph *graph) {
   // layers
   for (auto layer : json["layers"].array_items()) {
     // Exampe definition of layer.
+    // See $nnview/models/mnist/model.json for details.
     //
     // {
     //   "type": "input",
@@ -214,7 +226,7 @@ bool load_json_graph(const std::string &filename, Graph *graph) {
 
     for (auto &output_name : layer["output_names"].array_items()) {
       if (output_name.is_string()) {
-        node.outputs.push_back({output_name.string_value(), -1});
+        node.outputs.push_back(Slot(output_name.string_value(), "output", -1));
       }
     }
 
@@ -222,7 +234,7 @@ bool load_json_graph(const std::string &filename, Graph *graph) {
     if (node.outputs.size() == 1) {
       if (layer["output_tensor"].is_string()) {
         std::string tensor_filename = layer["output_tensor"].string_value();
-        temp_tensors.push_back({node.outputs[0].first, tensor_filename});
+        temp_tensors.push_back({node.outputs[0].name, tensor_filename});
       }
     }
 
@@ -238,13 +250,19 @@ bool load_json_graph(const std::string &filename, Graph *graph) {
       assert(node.outputs.size() == 1);
       if (layer["input_tensor"].is_string()) {
         std::string tensor_filename = layer["input_tensor"].string_value();
-        temp_tensors.push_back({node.outputs[0].first, tensor_filename});
+        temp_tensors.push_back({node.outputs[0].name, tensor_filename});
       }
 
     } else if (type.compare("LinearFunction") == 0) {
       bool ret = ParseLinearFunctionProperty(layer, &node, &temp_tensors);
       if (!ret) {
         std::cerr << "Failed to parse `LinearFunction` layer.\n";
+        return false;
+      }
+    } else if (type.compare("ReLU") == 0) {
+      bool ret = ParseReLUProperty(layer, &node);
+      if (!ret) {
+        std::cerr << "Failed to parse `ReLU` layer.\n";
         return false;
       }
     } else {
@@ -255,6 +273,8 @@ bool load_json_graph(const std::string &filename, Graph *graph) {
     graph->nodes.push_back(node);
 
     std::cout << "Node: " << name << ", id: " << node.id << "\n";
+    std::cout << "  # of inputs: " << node.inputs.size() << "\n";
+    std::cout << "  # of outputs: " << node.outputs.size() << "\n";
 
     node_name_to_id_map[name] = node.id;
   }
@@ -285,13 +305,13 @@ bool load_json_graph(const std::string &filename, Graph *graph) {
   {
     for (const auto &input : inputs) {
       int input_id = node_name_to_id_map[input];
-      graph->inputs.push_back({input, input_id});
+      graph->inputs.push_back(Slot(input, "input", input_id));
       std::cout << "Input: " << input << ", id: " << input_id << "\n";
     }
 
     for (const auto &output : outputs) {
       int output_id = node_name_to_id_map[output];
-      graph->inputs.push_back({output, output_id});
+      graph->inputs.push_back(Slot(output, "output", output_id));
       std::cout << "Output: " << output << ", id: " << output_id << "\n";
     }
   }
@@ -302,35 +322,35 @@ bool load_json_graph(const std::string &filename, Graph *graph) {
       Node &node = graph->nodes[n];
 
       for (size_t i = 0; i < node.inputs.size(); i++) {
-        const std::string &name = node.inputs[i].first;
+        const std::string &name = node.inputs[i].name;
 
         int tensor_id = FindTensor(name, graph->tensors);
         if (tensor_id == -1) {
-          std::cerr << "Input layer \"" << name
+          std::cerr << "Input tensor \"" << name
                     << "\" not found in the graph.\n";
           return false;
         } else {
-          std::cerr << "Input layer \"" << name
-                    << "\" has connection to tensor id " << tensor_id << "\n";
+          std::cerr << "Input tensor \"" << name
+                    << "\" has connection. tensor id " << tensor_id << "\n";
         }
 
-        node.inputs[i].second = tensor_id;
+        node.inputs[i].id = tensor_id;
       }
 
       for (size_t o = 0; o < node.outputs.size(); o++) {
-        const std::string &name = node.outputs[o].first;
+        const std::string &name = node.outputs[o].name;
 
         int tensor_id = FindTensor(name, graph->tensors);
         if (tensor_id == -1) {
-          std::cerr << "Output layer \"" << name
+          std::cerr << "Output tensor \"" << name
                     << "\" not found in the graph.\n";
           return false;
         } else {
-          std::cerr << "Output layer \"" << name
-                    << "\" has connection to tensor id " << tensor_id << "\n";
+          std::cerr << "Output tensor \"" << name
+                    << "\" has connection. tensor id " << tensor_id << "\n";
         }
 
-        node.outputs[o].second = tensor_id;
+        node.outputs[o].id = tensor_id;
       }
     }
   }

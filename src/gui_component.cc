@@ -213,27 +213,26 @@ static ed::NodeId GetNextNodeId() {
   return static_cast<uintptr_t>(GetNextId());
 }
 
-static ed::LinkId GetNextLinkId() { return ed::LinkId(GetNextId()); }
-
+static ed::LinkId GetNextLinkId() { return ed::LinkId(uint32_t(GetNextId())); }
 
 static ImColor GetIconColor(PinType type) {
   switch (type) {
-  case PinType::Flow:
-    return ImColor(255, 255, 255);
-  case PinType::Bool:
-    return ImColor(220, 48, 48);
-  case PinType::Int:
-    return ImColor(68, 201, 156);
-  case PinType::Float:
-    return ImColor(147, 226, 74);
-  case PinType::String:
-    return ImColor(124, 21, 153);
-  case PinType::Object:
-    return ImColor(51, 150, 215);
-  case PinType::Function:
-    return ImColor(218, 0, 183);
-  case PinType::Delegate:
-    return ImColor(255, 48, 48);
+    case PinType::Flow:
+      return ImColor(255, 255, 255);
+    case PinType::Bool:
+      return ImColor(220, 48, 48);
+    case PinType::Int:
+      return ImColor(68, 201, 156);
+    case PinType::Float:
+      return ImColor(147, 226, 74);
+    case PinType::String:
+      return ImColor(124, 21, 153);
+    case PinType::Object:
+      return ImColor(51, 150, 215);
+    case PinType::Function:
+      return ImColor(218, 0, 183);
+    case PinType::Delegate:
+      return ImColor(255, 48, 48);
   }
 };
 
@@ -244,30 +243,30 @@ static void DrawPinIcon(const Pin &pin, bool connected, int alpha) {
   ImColor color = GetIconColor(pin.Type);
   color.Value.w = alpha / 255.0f;
   switch (pin.Type) {
-  case PinType::Flow:
-    iconType = IconType::Flow;
-    break;
-  case PinType::Bool:
-    iconType = IconType::Circle;
-    break;
-  case PinType::Int:
-    iconType = IconType::Circle;
-    break;
-  case PinType::Float:
-    iconType = IconType::Circle;
-    break;
-  case PinType::String:
-    iconType = IconType::Circle;
-    break;
-  case PinType::Object:
-    iconType = IconType::Circle;
-    break;
-  case PinType::Function:
-    iconType = IconType::Circle;
-    break;
-  case PinType::Delegate:
-    iconType = IconType::Square;
-    break;
+    case PinType::Flow:
+      iconType = IconType::Flow;
+      break;
+    case PinType::Bool:
+      iconType = IconType::Circle;
+      break;
+    case PinType::Int:
+      iconType = IconType::Circle;
+      break;
+    case PinType::Float:
+      iconType = IconType::Circle;
+      break;
+    case PinType::String:
+      iconType = IconType::Circle;
+      break;
+    case PinType::Object:
+      iconType = IconType::Circle;
+      break;
+    case PinType::Function:
+      iconType = IconType::Circle;
+      break;
+    case PinType::Delegate:
+      iconType = IconType::Square;
+      break;
   }
 
   ax::Widgets::Icon(ImVec2(PinIconSize, PinIconSize), iconType, connected,
@@ -311,65 +310,62 @@ void GUIContext::draw_imnodes() {
     // ImGui::Text("%s", node.name.c_str());
 
     if (!node.inputs.empty()) {
-      auto &pin = node.inputs[0];
+      for (const auto &in_pin : node.inputs) {
+        auto alpha = ImGui::GetStyle().Alpha;
 
-      auto alpha = ImGui::GetStyle().Alpha;
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+        builder.Input(in_pin.ID);
 
-      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
-      builder.Input(pin.ID);
+        if (!in_pin.Name.empty()) {
+          ImGui::Spring(0);
+          ImGui::TextUnformatted(in_pin.Name.c_str());
+        }
 
-      if (!pin.Name.empty()) {
         ImGui::Spring(0);
-        ImGui::TextUnformatted(pin.Name.c_str());
+        DrawPinIcon(in_pin, /* linked*/ false, int(alpha * 255.0f));
+        ImGui::PopStyleVar();
+        builder.EndInput();
       }
-
-      ImGui::Spring(0);
-      DrawPinIcon(pin, /* linked*/ false, int(alpha * 255.0f));
-
-      ImGui::PopStyleVar();
-
-      builder.EndInput();
     }
 
     if (!node.outputs.empty()) {
-      auto &pin = node.outputs[0];
+      for (const auto &out_pin : node.outputs) {
+        // ImGui::Dummy(ImVec2(0, padding));
+        // ImGui::Spring(1, 0);
+        // ImGui::Text("bora");
 
-      // ImGui::Dummy(ImVec2(0, padding));
-      // ImGui::Spring(1, 0);
-      // ImGui::Text("bora");
+        // ImRect inputs_rect = ImGui_GetItemRect();
 
-      // ImRect inputs_rect = ImGui_GetItemRect();
+        auto alpha = ImGui::GetStyle().Alpha;
 
-      auto alpha = ImGui::GetStyle().Alpha;
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+        builder.Output(out_pin.ID);
 
-      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
-      builder.Output(pin.ID);
+        if (!out_pin.Name.empty()) {
+          ImGui::Spring(0);
+          ImGui::TextUnformatted(out_pin.Name.c_str());
+        }
 
-      if (!pin.Name.empty()) {
         ImGui::Spring(0);
-        ImGui::TextUnformatted(pin.Name.c_str());
+        DrawPinIcon(out_pin, /* linked*/ false, int(alpha * 255.0f));
+
+        ImGui::PopStyleVar();
+
+        builder.EndOutput();
+
+        // ed::BeginPin(pin.ID, ed::PinKind::Input);
+        // ed::PinPivotRect(inputs_rect.GetTL(), inputs_rect.GetBR());
+        // ed::PinRect(inputs_rect.GetTL(), inputs_rect.GetBR());
+        // ImGui::Text("bora");
+        // ed::EndPin();
+        // ed::PopStyleVar(3);
       }
-
-      ImGui::Spring(0);
-      DrawPinIcon(pin, /* linked*/ false, int(alpha * 255.0f));
-
-      ImGui::PopStyleVar();
-
-      builder.EndOutput();
-
-      // ed::BeginPin(pin.ID, ed::PinKind::Input);
-      // ed::PinPivotRect(inputs_rect.GetTL(), inputs_rect.GetBR());
-      // ed::PinRect(inputs_rect.GetTL(), inputs_rect.GetBR());
-      // ImGui::Text("bora");
-      // ed::EndPin();
-      // ed::PopStyleVar(3);
     }
 
     builder.End();
 
-
     // draw link
-    for (auto& link : _links) {
+    for (auto &link : _links) {
       ed::Link(link.ID, link.StartPinID, link.EndPinID, link.Color, 2.0f);
     }
 
@@ -431,43 +427,46 @@ void GUIContext::init_imnode_graph() {
 
   const float node_size = 128.0f;
   const float node_padding = 160.0f;
-  const float layer_stride = node_size + node_padding;
+  const float layer_stride = 2 * node_size + node_padding;
   const float node_rect_slot_size_y = 32.0f;
   const float tensor_x_offset = node_size + 64.0f;
 
   _imnodes.clear();
   _links.clear();
 
-
-  std::map<int, int> tensor_id_imnode_map; // <id, imnode index>
+  std::map<int, int> tensor_id_imnode_map;  // <id, imnode index>
 
   // Create node for layers
   for (size_t i = 0; i < _graph.nodes.size(); i++) {
     const nnview::Node &node = _graph.nodes[i];
-    {
+    std::cout << "=== node[" << std::to_string(i) << "] " << node.name << "\n";
+    std::cout << "  inputs = " << std::to_string(node.inputs.size()) << "\n";
+    std::cout << "  outputs = " << std::to_string(node.outputs.size()) << "\n";
 
+    {
       ImNode imnode(GetNextNodeId(), node.name);
       const float node_rect_height =
           node.outputs.size() * node_rect_slot_size_y;
       imnode.size = ImVec2(node_size, node_rect_height);
 
-	  // Create pin id
-	  for (size_t p = 0; p < node.inputs.size(); p++) {
-		std::string name = "in" + std::to_string(p);
+      // Create pin id
+      for (size_t p = 0; p < node.inputs.size(); p++) {
+        const Slot &slot = node.inputs[p];
+        std::string name = slot.slot_name;
 
         Pin pin(uint32_t(GetNextId()), name, PinType::Flow);
 
-		imnode.inputs.emplace_back(pin);
+        imnode.inputs.emplace_back(pin);
+      }
 
-	  }
+      for (size_t p = 0; p < node.outputs.size(); p++) {
+        const Slot &slot = node.outputs[p];
+        std::string name = slot.slot_name;
 
-	  for (size_t p = 0; p < node.outputs.size(); p++) {
-         std::string name = "out" + std::to_string(p);
+        Pin pin(uint32_t(GetNextId()), name, PinType::Flow);
 
-         Pin pin(uint32_t(GetNextId()), name, PinType::Flow);
-
-         imnode.outputs.emplace_back(pin);
-       }
+        imnode.outputs.emplace_back(pin);
+      }
 
       float offset_x = layer_stride * float(node.depth);
       std::cout << "depth = " << node.depth << "\n";
@@ -477,110 +476,130 @@ void GUIContext::init_imnode_graph() {
       _imnodes.emplace_back(imnode);
     }
 
-	const size_t imnode_idx = _imnodes.size() - 1;
+    // Use index since `_imnodes` will be resized later(pointer or reference
+    // value differs due to std::vector resizing)
+    const size_t imnode_idx = _imnodes.size() - 1;
 
-
-	assert(_imnodes[imnode_idx].inputs.size() == node.inputs.size());
+    assert(_imnodes[imnode_idx].inputs.size() == node.inputs.size());
     assert(_imnodes[imnode_idx].outputs.size() == node.outputs.size());
 
     // Create node for tensor connected to this node
     for (size_t t = 0; t < node.inputs.size(); t++) {
-          const StrId &str_id = node.inputs[t];
-          std::cout << "tensor id = " << str_id.second << "\n";
+      const Slot &slot = node.inputs[t];
+      std::cout << "Node " << node.name << ".inputs[" << std::to_string(t)
+                << "] tensor id = " << slot.id << "\n";
 
-          assert(str_id.second >= 0);
-          assert(str_id.second < int(_graph.tensors.size()));
- 
-          if (tensor_id_imnode_map.find(str_id.second) !=
-              tensor_id_imnode_map.end()) {
+      assert(slot.id >= 0);
+      assert(slot.id < int(_graph.tensors.size()));
 
-			const ImNode &tensor_imnode = _imnodes[tensor_id_imnode_map[str_id.second]];
+      if (tensor_id_imnode_map.find(slot.id) != tensor_id_imnode_map.end()) {
+        ImNode &tensor_imnode = _imnodes[size_t(tensor_id_imnode_map[slot.id])];
 
-			Link link(GetNextLinkId(), tensor_imnode.outputs[0].ID, _imnodes[imnode_idx].inputs[t].ID);
+        std::cout << "outputs.size = " << tensor_imnode.outputs.size() << "\n";
 
-			_links.emplace_back(link);
-
-            continue;
-          }
-
-          const nnview::Tensor &tensor = _graph.tensors[size_t(str_id.second)];
-
-          ImNode tensor_imnode(GetNextNodeId(), tensor.name);
-
-          const float node_rect_width = tensor.shape[1];
-          const float node_rect_height = tensor.shape[0];
-
-          tensor_imnode.size = ImVec2(node_rect_width, node_rect_height);
-
-          Pin out_pin(uint32_t(GetNextId()), /* empty name */ "", PinType::Flow);
-
-          tensor_imnode.outputs.emplace_back(out_pin);
-
-          float offset_x = layer_stride * float(node.depth) + tensor_x_offset;
-          float offset_y = 128.0f * float(t);
-          ed::SetNodePosition(tensor_imnode.id, ImVec2(offset_x, 264.0f + offset_y));
-
-		  tensor_id_imnode_map[str_id.second] = _imnodes.size();
-
-		  Link link(GetNextLinkId(), out_pin.ID, _imnodes[imnode_idx].inputs[t].ID);
-
-		  std::cout << "link (" << intptr_t(&out_pin.ID) << ") -> (" << intptr_t(&_imnodes[imnode_idx].inputs[t].ID) << std::endl;
-          _links.push_back(link);
-
-          _imnodes.push_back(tensor_imnode);
+        if (tensor_imnode.outputs.size() == 0) {
+          // Create output pin
+          Pin out_pin(uint32_t(GetNextId()), /* empty name */ "",
+                      PinType::Flow);
+          tensor_imnode.outputs.push_back(out_pin);
         }
 
-        for (size_t t = 0; t < node.outputs.size(); t++) {
-          const StrId &str_id = node.outputs[t];
-          std::cout << "tensor id = " << str_id.second << "\n";
+        Link link(GetNextLinkId(), tensor_imnode.outputs[0].ID,
+                  _imnodes[imnode_idx].inputs[t].ID);
 
-          assert(str_id.second >= 0);
-          assert(str_id.second < int(_graph.tensors.size()));
+        _links.emplace_back(link);
 
-          if (tensor_id_imnode_map.find(str_id.second) !=
-              tensor_id_imnode_map.end()) {
+        continue;
+      }
 
-			size_t tensor_imnode_idx = tensor_id_imnode_map[str_id.second];
-			ImNode &tensor_imnode = _imnodes[tensor_imnode_idx];
+      const nnview::Tensor &tensor = _graph.tensors[size_t(slot.id)];
 
-			if (tensor_imnode.outputs.size() == 0) {
-				// ImNode for Tensor is already registered but no input pin registered
-				Pin in_pin(uint32_t(GetNextId()), /* empty name */ "", PinType::Flow);
+      ImNode tensor_imnode(GetNextNodeId(), tensor.name);
 
-	            tensor_imnode.inputs.emplace_back(in_pin);
-            }
+      const float node_rect_width = tensor.shape[1];
+      const float node_rect_height = tensor.shape[0];
 
-            continue;
-          }
+      tensor_imnode.color = ImColor(32, 255, 32);
+      tensor_imnode.size = ImVec2(node_rect_width, node_rect_height);
 
-          const nnview::Tensor &tensor = _graph.tensors[size_t(str_id.second)];
+      Pin out_pin(uint32_t(GetNextId()), /* empty name */ "", PinType::Flow);
 
-          ImNode tensor_imnode(GetNextNodeId(), tensor.name);
+      tensor_imnode.outputs.emplace_back(out_pin);
 
-          const float node_rect_width = tensor.shape[1];
-          const float node_rect_height = tensor.shape[0];
+      // FIXME(LTE): Use the depth of previous op
+      float offset_x = layer_stride * float(node.depth - 2) + tensor_x_offset;
+      float offset_y = 128.0f * float(t);
+      ed::SetNodePosition(tensor_imnode.id, ImVec2(offset_x, 64.0f + offset_y));
 
-          tensor_imnode.size = ImVec2(node_rect_width, node_rect_height);
+      tensor_id_imnode_map[slot.id] = int(_imnodes.size());
 
+      Link link(GetNextLinkId(), out_pin.ID, _imnodes[imnode_idx].inputs[t].ID);
+
+      std::cout << "link (" << intptr_t(&out_pin.ID) << ") -> ("
+                << intptr_t(&_imnodes[imnode_idx].inputs[t].ID) << std::endl;
+      _links.push_back(link);
+
+      _imnodes.push_back(tensor_imnode);
+    }
+
+    for (size_t t = 0; t < node.outputs.size(); t++) {
+      const Slot &slot = node.outputs[t];
+      std::cout << "output[" << t << "] tensor id = " << slot.id << "\n";
+
+      assert(slot.id >= 0);
+      assert(slot.id < int(_graph.tensors.size()));
+
+      if (tensor_id_imnode_map.find(slot.id) != tensor_id_imnode_map.end()) {
+        size_t tensor_imnode_idx = size_t(tensor_id_imnode_map[slot.id]);
+        ImNode &tensor_imnode = _imnodes[tensor_imnode_idx];
+
+        if (tensor_imnode.outputs.size() == 0) {
+          // ImNode for Tensor is already registered but no input pin registered
           Pin in_pin(uint32_t(GetNextId()), /* empty name */ "", PinType::Flow);
-          //Pin out_pin(uint32_t(GetNextId()), /* empty name */ "", PinType::Flow);
 
           tensor_imnode.inputs.emplace_back(in_pin);
-          //tensor_imnode.outputs.emplace_back(out_pin);
-
-          float offset_x = layer_stride * float(node.depth) + tensor_x_offset;
-          float offset_y = 128.0f * float(t);
-          ed::SetNodePosition(tensor_imnode.id, ImVec2(offset_x, 264.0f + offset_y));
-
-          _imnodes.push_back(tensor_imnode);
         }
+
+        continue;
+      }
+
+      const nnview::Tensor &tensor = _graph.tensors[size_t(slot.id)];
+
+      ImNode tensor_imnode(GetNextNodeId(), tensor.name);
+
+      const float node_rect_width = tensor.shape[1];
+      const float node_rect_height = tensor.shape[0];
+
+      tensor_imnode.color = ImColor(32, 32, 255);
+      tensor_imnode.size = ImVec2(node_rect_width, node_rect_height);
+
+      Pin in_pin(uint32_t(GetNextId()), /* empty name */ "", PinType::Flow);
+      // Pin out_pin(uint32_t(GetNextId()), /* empty name */ "", PinType::Flow);
+
+      tensor_imnode.inputs.emplace_back(in_pin);
+      // tensor_imnode.outputs.emplace_back(out_pin);
+
+      Link link(GetNextLinkId(), _imnodes[imnode_idx].outputs[t].ID, in_pin.ID);
+
+      std::cout << "link " << node.name << " ("
+                << intptr_t(&_imnodes[imnode_idx].outputs[t].ID) << ") -> ("
+                << intptr_t(&in_pin.ID) << std::endl;
+      _links.push_back(link);
+
+      float offset_x = layer_stride * float(node.depth) + tensor_x_offset;
+      float offset_y = 128.0f * float(t);
+      ed::SetNodePosition(tensor_imnode.id, ImVec2(offset_x, 64.0f + offset_y));
+
+      tensor_id_imnode_map[slot.id] = int(_imnodes.size());
+      _imnodes.push_back(tensor_imnode);
+    }
   }
 
   ed::NavigateToContent();
 }
 
 void GUIContext::draw_tensor() {
-  static float scale = 4.0f; // Set 4x for better initial visual
+  static float scale = 4.0f;  // Set 4x for better initial visual
 
   ImGui::Begin("Tensor", /* p_open */ nullptr,
                ImGuiWindowFlags_HorizontalScrollbar);
@@ -649,4 +668,4 @@ void GUIContext::finalize() {
   }
 }
 
-} // namespace nnview
+}  // namespace nnview

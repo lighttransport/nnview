@@ -24,94 +24,96 @@ namespace nnview {
 struct ImNode;
 
 enum class PinType {
-    Flow,
-    Bool,
-    Int,
-    Float,
-    String,
-    Object,
-    Function,
-    Delegate,
+	Flow,
+	Bool,
+	Int,
+	Float,
+	String,
+	Object,
+	Function,
+	Delegate,
 };
 
 enum class PinKind { Output, Input };
 
 struct Link {
-  ed::LinkId ID;
+	ed::LinkId ID;
 
-  ed::PinId StartPinID;
-  ed::PinId EndPinID;
+	ed::PinId StartPinID;
+	ed::PinId EndPinID;
 
-  ImColor Color;
+	ImColor Color;
 
-  Link(ed::LinkId id, ed::PinId startPinId, ed::PinId endPinId)
-      : ID(id), StartPinID(startPinId), EndPinID(endPinId),
-        Color(255, 255, 255) {}
+	Link(ed::LinkId id, ed::PinId startPinId, ed::PinId endPinId)
+	    : ID(id),
+	      StartPinID(startPinId),
+	      EndPinID(endPinId),
+	      Color(255, 255, 255) {}
 };
 
-
 struct Pin {
-  ed::PinId ID;
-  ImNode *ImNode;
-  std::string Name;
-  PinType Type;
-  PinKind Kind;
+	ed::PinId ID;
+	ImNode *ImNode;
+	std::string Name;
+	PinType Type;
+	PinKind Kind;
 
-  Pin(ed::PinId id, const std::string name, PinType type)
-      : ID(id), ImNode(nullptr), Name(name), Type(type), Kind(PinKind::Input) {}
+	Pin(ed::PinId id, const std::string name, PinType type)
+	    : ID(id),
+	      ImNode(nullptr),
+	      Name(name),
+	      Type(type),
+	      Kind(PinKind::Input) {}
 };
 
 struct ImNode {
-  // For imgui-node-editor
-  ed::NodeId id;
-  std::string name;
-  std::vector<Pin> inputs;
-  std::vector<Pin> outputs;
-  ImColor color;
-  ImVec2 size;
+	// For imgui-node-editor
+	ed::NodeId id;
+	std::string name;
+	std::vector<Pin> inputs;
+	std::vector<Pin> outputs;
+	ImColor color;
+	ImVec2 size;
 
-  ImNode(ed::NodeId _id, const std::string _name,
-         ImColor _color = ImColor(255, 255, 255))
-      : id(_id), name(_name), color(_color), size(0, 0) {}
+	ImNode(ed::NodeId _id, const std::string _name,
+	       ImColor _color = ImColor(255, 255, 255))
+	    : id(_id), name(_name), color(_color), size(0, 0) {}
 };
 
-class GUIContext
-{
- public:
-  int _active_tensor_id = -1;
+class GUIContext {
+       public:
+	int _active_tensor_id = -1;
 
-  nnview::Graph _graph;
+	nnview::Graph _graph;
 
-  // Node and Link(connection) information using imgui-node-editor
-  std::vector<ImNode> _imnodes;
-  std::vector<Link> _links;
+	// Node and Link(connection) information using imgui-node-editor
+	std::vector<ImNode> _imnodes;
+	std::vector<Link> _links;
 
-  // OpenGL texture id for displaying Tensor as Texture(Image)
-  std::vector<GLuint> _tensor_texture_ids;
+	// OpenGL texture id for displaying Tensor as Texture(Image)
+	std::vector<GLuint> _tensor_texture_ids;
 
-  GLuint _background_texture_id = 0;
+	GLuint _background_texture_id = 0;
 
-  ed::EditorContext *_editor_context = nullptr;
+	ed::EditorContext *_editor_context = nullptr;
 
-  // Call `init` before calling any methods defined in `GUIContext`.
-  // `graph` variable must be set before calling `init`.
-  void init();
+	// Call `init` before calling any methods defined in `GUIContext`.
+	// `graph` variable must be set before calling `init`.
+	void init();
 
-  // Initialize and layout ImNodes from Graph.
-  // This function should be called after `init` and before calling ImNode drawing methods.
-  void init_imnode_graph();
+	// Initialize and layout ImNodes from Graph.
+	// This function should be called after `init` and before calling ImNode
+	// drawing methods.
+	void init_imnode_graph();
 
-  void draw_imnodes();
+	void draw_imnodes();
 
-  // Draw Tensor in active section.
-  void draw_tensor();
+	// Draw Tensor in active section.
+	void draw_tensor();
 
-  void finalize();
-
-
+	void finalize();
 };
 
-} // namespace nnview
+}  // namespace nnview
 
-
-#endif // NNVIEW_GUI_COMPONENT_HH_
+#endif  // NNVIEW_GUI_COMPONENT_HH_
