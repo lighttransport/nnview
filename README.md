@@ -2,7 +2,8 @@
 
 nnview can display weights and graph structure of neural network model.
 
-T.B.W.
+![img](images/nnview.jpg)
+
 
 ## How it works
 
@@ -20,6 +21,14 @@ T.B.W.
 ```
 
 Solution file will be generated into `build` folder.
+
+## UI
+
+### Graph
+
+* 'F' key to fit view 
+* right mouse drag to pan view
+
 
 ### Supported format
 
