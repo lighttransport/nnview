@@ -57,6 +57,7 @@ MIT license
 ### Third party licences
 
 * imgui : Public domain
+* imgui-node-editor : Copyright (c) 2019 Michał Cichoń. MIT license.
 * glfw3 : zlib license
 * nativefiledialog : zlib license
 * roboto font : Apache 2.0 license
