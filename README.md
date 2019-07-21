@@ -23,6 +23,23 @@ Very early stage. W.I.P.
 
 ## Build
 
+### Requirements
+
+* C++14 compiler(imgui-node-editor requires C++14. Other component can be compiled with C++11) 
+* Cmake
+* OpenGL 3.x(imgui-node-editor requires GL 3.x)
+
+### cmake options
+
+* NNVIEW_USE_CCACHE On/Off : Compile with ccache
+* NNVIEW_USE_NATIVEFILEDIALOG On/Off Use NativeFileDialog. default on for Windows and macOS
+* `SANITIZE_ADDRESS=On` : Enable address sanitizer. Requires clang or recent gcc.
+
+
+### BUild on Linux and macOS
+
+See `scripts/bootstrap-linux.sh` and `scripts/bootstrap-macos.sh` for examle cmake bootstrapping.
+
 ### Build on Windows(Visual Studio 2017)
 
 ```
