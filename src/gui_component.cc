@@ -126,20 +126,20 @@ static void show_tensor_value(
     // Assume offset of image item from window corner(upper-left) is rather
     // small(e.g. < 50 pixels)
     // TODO(LTE): Compute bound outside of for loop.
-    if (((step + 1) * y) < -tensor_image_widget_offset.y) {
+    if (((step + 1) * float(y)) < -tensor_image_widget_offset.y) {
       continue;
     }
-    if (((step * y) > (-tensor_image_widget_offset.y + window_size.y))) {
+    if (((step * float(y)) > (-tensor_image_widget_offset.y + window_size.y))) {
       continue;
     }
 
     for (size_t x = 0; x < width; x++) {
       // TODO(LTE): Compute bound outside of for loop.
-      if ((step + 1) * x < -tensor_image_widget_offset.x) {
+      if ((step + 1) * float(x) < -tensor_image_widget_offset.x) {
         continue;
       }
 
-      if ((step * x) > (-tensor_image_widget_offset.x + window_size.x)) {
+      if ((step * float(x)) > (-tensor_image_widget_offset.x + window_size.x)) {
         continue;
       }
 
@@ -149,9 +149,9 @@ static void show_tensor_value(
       snprintf(buf, sizeof(buf), "%4.3f", double(value));
 
       ImVec2 bmin = ImVec2(window_pos.x + tensor_image_widget_offset.x +
-                               step * x + left_margin + cell_left_margin,
+                               step * float(x) + left_margin + cell_left_margin,
                            window_pos.y + tensor_image_widget_offset.y +
-                               step * y + top_margin + cell_top_margin);
+                               step * float(y) + top_margin + cell_top_margin);
 
       // Prevent too many AddRectFilled call for safety.
       // ImGui's default uses 16bit indices, so drawing too many rects will
@@ -241,7 +241,7 @@ static void DrawPinIcon(const Pin &pin, bool connected, int alpha) {
 
   IconType iconType;
   ImColor color = GetIconColor(pin.Type);
-  color.Value.w = alpha / 255.0f;
+  color.Value.w = float(alpha) / 255.0f;
   switch (pin.Type) {
     case PinType::Flow:
       iconType = IconType::Flow;
@@ -475,7 +475,7 @@ void GUIContext::init_imnode_graph() {
       ed::NodeId node_id = GetNextNodeId();
       ImNode imnode(node_id, node.name);
       const float node_rect_height =
-          node.outputs.size() * node_rect_slot_size_y;
+          float(node.outputs.size()) * node_rect_slot_size_y;
       imnode.size = ImVec2(node_size, node_rect_height);
 
       // Create pin id
@@ -547,8 +547,8 @@ void GUIContext::init_imnode_graph() {
       ImNode tensor_imnode(imnode_id, tensor.name);
       tensor_imnode.tensor_id = slot.id;
 
-      const float node_rect_width = tensor.shape[1];
-      const float node_rect_height = tensor.shape[0];
+      const float node_rect_width = float(tensor.shape[1]);
+      const float node_rect_height = float(tensor.shape[0]);
 
       tensor_imnode.color = ImColor(32, 255, 32);
       tensor_imnode.size = ImVec2(node_rect_width, node_rect_height);
@@ -603,8 +603,8 @@ void GUIContext::init_imnode_graph() {
       ImNode tensor_imnode(imnode_id, tensor.name);
       tensor_imnode.tensor_id = slot.id;
 
-      const float node_rect_width = tensor.shape[1];
-      const float node_rect_height = tensor.shape[0];
+      const float node_rect_width = float(tensor.shape[1]);
+      const float node_rect_height = float(tensor.shape[0]);
 
       tensor_imnode.color = ImColor(32, 32, 255);
       tensor_imnode.size = ImVec2(node_rect_width, node_rect_height);
@@ -691,7 +691,7 @@ void GUIContext::draw_tensor() {
     image_local_offset.y = image_pos.y - win_pos.y;
 
     ImGui::Image(ImTextureID(intptr_t(texid)),
-                 ImVec2(scale * tensor.shape[1], scale * tensor.shape[0]));
+                 ImVec2(scale * float(tensor.shape[1]), scale * float(tensor.shape[0])));
 
     if (scale > 40.0f) {
       // 40.0 ~ 64.0 : alpha 0 -> 1
